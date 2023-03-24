@@ -22,5 +22,5 @@ class RouteTableObject: object
 	_error(msg?) { aioSay('\n<<(svc ? '<<svc>>: ' : '')>><<msg>>\n '); }
 ;
 
-class RouteTable: RouteTableObject
+class RouteTable: RouteTableObject, SimpleGraphDirected
 ;

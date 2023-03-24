@@ -6,3 +6,6 @@
 #include <en_us.h>
 
 #include "routeTable.h"
+
+class RouteTableZone: RouteTableObject, SimpleGraphVertex
+;
