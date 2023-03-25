@@ -145,16 +145,11 @@ routeTableRoom: RouteTableRoot
 
 	// Add all the edges to the given zone.  id is the zone ID, z is
 	// the zone's vertex in the main zone routing table.
-	addIntrazoneEdges(id, z) {
-		local a, c, dst, g, rm;
+	addIntrazoneEdges(id, g) {
+		local a, c, dst, rm;
 
 		// Use the initial player to figure out connectivity.
 		a = gameMain.initialPlayerChar;
-
-		// z is the zone's vertex in the zone routing table, its
-		// data is the graph that holds vertices for each room in
-		// the zone.
-		g = z.getData();
 
 		// Go through all of the zone's vertices.  There will be one
 		// per room in the zone.
@@ -211,24 +206,26 @@ routeTableRoom: RouteTableRoot
 		// one to go through each of ITS vertices and make a next
 		// hop table for every possible path through itself.
 		getVertices().forEachAssoc(function(k, v) {
-			// First we add all the edges (connections between
-			// rooms) to the zone's graph.
-			addIntrazoneEdges(k, v);
-
-			// Now we compute all the next-hop route information
-			// for each vertex (room) in the zone's graph.
-			buildZoneNextHopTables(k, v);
+			buildZoneRouteTable(k, v.getData());
 		});
+	}
+
+	// Build an individual zone's route table.  The ID is the zone
+	// ID, and z is the zone graph.
+	buildZoneRouteTable(id, g) {
+		// First we add all the edges (connections between
+		// rooms) to the zone's graph.
+		addIntrazoneEdges(id, g);
+
+		// Now we compute all the next-hop route information
+		// for each vertex (room) in the zone's graph.
+		buildZoneNextHopTables(id, g);
 	}
 
 	// Create the next hop route table for the given zone.  id is the
 	// zone ID and g is the zone vertex in the zone routing table.
-	buildZoneNextHopTables(id, z) {
-		local g, l, p, v;
-
-		// z is the vertex for this zone in the zone routing table, g is
-		// the graph of this zone.
-		g = z.getData();
+	buildZoneNextHopTables(id, g) {
+		local l, p, v;
 
 		// LookupTable of all the vertices in this zone.
 		l = g.getVertices();
@@ -249,6 +246,20 @@ routeTableRoom: RouteTableRoot
 				v = g.getVertex(p[2]);
 				v0.setRouteTableNextHop(k1, v.getData());
 			});
+		});
+	}
+
+	// Clear this zone's graph.
+	clearIntrazoneEdges(id, g) {
+		g.edgeIDList().forEach(function(o) {
+			g.removeEdge(o[1], o[2]);
+		});
+	}
+
+	// Clear this zones next hop tables.
+	clearZoneNextHopTables(id, g) {
+		g.getVertices().forEachAssoc(function(k, v) {
+			v.clearRouteTableNextHop();
 		});
 	}
 
@@ -329,6 +340,15 @@ routeTableRoom: RouteTableRoot
 		}
 
 		return(r);
+	}
+
+	rebuildZone(id) {
+		local g;
+
+		g = getRouteTableZone(id);
+		clearZoneNextHopTables(id, g);
+		clearIntrazoneEdges(id, g);
+		buildZoneRouteTable(id, g);
 	}
 ;
 

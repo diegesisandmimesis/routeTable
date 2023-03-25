@@ -85,6 +85,12 @@ class RouteTableVertex: SimpleGraphVertex
 	// is the object that's the next hop to take to reach it from
 	// this vertex.
 	setRouteTableNextHop(id, v) { routeTableNextHop[id] = v; }
+
+	clearRouteTableNextHop() {
+		routeTableNextHop.keysToList().forEach(function(o) {
+			routeTableNextHop.removeElement(o);
+		});
+	}
 ;
 
 // Class for our routing tables.  The base class is a directed graph.
