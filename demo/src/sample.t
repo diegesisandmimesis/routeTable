@@ -185,7 +185,7 @@ gameMain: GameMainDef
 	_logPath(rm0, rm1) {
 		local l;
 
-		"Path from <q><<rm0.name>></q>
+		"Path from <q><<rm0.name>></q> to
 			<q><<rm1.name>></q>\n ";
 		l = routeTableRoom.findPath(rm0, rm1);
 		l.forEach(function(o) {

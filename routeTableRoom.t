@@ -11,8 +11,11 @@
 
 #ifndef ROUTE_TABLE_NO_ROOMS
 
-// Just add an ID to the base Room class.
-modify Room routeTableID = nil;
+// Just add an empty ID and zone property to the base Room class.
+modify Room
+	routeTableID = nil
+	routeTableZone = nil
+;
 
 // Our top-level router for Room instances.
 routeTableRoom: RouteTableRoot
