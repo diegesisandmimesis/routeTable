@@ -4,7 +4,8 @@
 // Version 1.0
 // Copyright 2022 Diegesis & Mimesis
 //
-// This is a very simple demonstration "game" for the routeTable library.
+// Simple non-interactive pathfinding demonstration.  Designed to test
+// a couple special cases.
 //
 // It can be compiled via the included makefile with
 //
@@ -19,42 +20,46 @@
 #include <adv3.h>
 #include <en_us.h>
 
-versionInfo:    GameID
-        name = 'routeTable Library Demo Game'
-        byline = 'Diegesis & Mimesis'
-        desc = 'Demo game for the routeTable library. '
-        version = '1.0'
-        IFID = '12345'
-	showAbout() {
-		"This is a simple test game that demonstrates the features
-		of the routeTable library.
-		<.p>
-		Consult the README.txt document distributed with the library
-		source for a quick summary of how to use the library in your
-		own games.
-		<.p>
-		The library source is also extensively commented in a way
-		intended to make it as readable as possible. ";
-	}
-;
+// No version info; we're never interactive.
+versionInfo: GameID;
 
+// ROOM CLASS DEFINITIONS
+//
+// For convenience we create classes for our different zones.  We don't
+// have to; we can just declare routeTableZone = 'whatever' on individual
+// rooms, but this is a little cleaner.
+// We also declare a "generic" zone and then a separate class for indoor
+// and outdoor rooms, but that has nothing to do with the pathfinding logic.
 class HouseZone: Room
 	routeTableZone = 'house'
 ;
 class HouseRoom: HouseZone;
 class HouseOutdoor: HouseZone, OutdoorRoom;
-
-class TownZone: Room
+//
+// All the "town" locations are outdoor, so we only define one class.
+class TownZone: OutdoorRoom
 	routeTableZone = 'town'
 ;
-class TownOutdoor: TownZone, OutdoorRoom;
-
+//
+// The "carnival" rooms are a mix of indoor and outdoor locations, so we
+// have multiple classes again.  And once again they all share a single zone.
+// That's because they're all in a big blob.  In a real game, the ticket booth
+// might be a chokepoint--maybe you need a ticket to get in.  So it makes
+// sense to put all the rooms behind the chokepoint into a single zone (because
+// pathing to all those locations would change whenever the state of the
+// ticket booth changes).  You could also have more granularity--the hall of
+// mirrors might be its own zone if the map layout of the interior changes, for
+// example.
 class CarnivalZone: Room
 	routeTableZone = 'carnival'
 ;
 class CarnivalRoom: CarnivalZone;
 class CarnivalOutdoor: CarnivalZone, OutdoorRoom;
 
+// ROOM DEFINITIONS
+//
+// HOUSE ROOMS
+//
 bedroom: HouseRoom 'Your Bedroom'
         "This is your minimally-implemented bedroom.  The hallway lies to the
 		west. "
@@ -92,7 +97,10 @@ frontYard: HouseOutdoor 'Your Front Yard'
 	south = hallway
 ;
 
-downtownWest: TownOutdoor 'Downtown West'
+//
+// TOWN ROOMS
+//
+downtownWest: TownZone 'Downtown West'
 	"This is the west end of downtown, which much resembles the east
 		end of downtown.  Your house is conveniently exactly one
 		step due south of here. "
@@ -100,14 +108,14 @@ downtownWest: TownOutdoor 'Downtown West'
 	east = downtownEast
 ;
 
-downtownEast: TownOutdoor 'Downtown East'
+downtownEast: TownZone 'Downtown East'
 	"This is the east end of downtown, which much resembles the west
 		end of downtown.  The outskirts of town are north of here. "
 	north = outskirts
 	west = downtownWest
 ;
 
-outskirts: TownOutdoor 'The Outskirts of Town'
+outskirts: TownZone 'The Outskirts of Town'
 	"This is the outskirts of town, where sparsely implemented meets
 		completely unimplemented.  The town itself lies to the south.
 		A placeholder carnival is apparently in town;  you can enter
@@ -116,6 +124,9 @@ outskirts: TownOutdoor 'The Outskirts of Town'
 	south = downtownEast
 ;
 
+//
+// CARNIVAL ROOMS
+//
 ticketBooth: CarnivalOutdoor 'The Carnival Ticket Booth'
 	"This is what we'll call the ticket booth to what we'll call the
 		carnival.  There is no booth and there are no tickets.  But
@@ -150,15 +161,36 @@ secretRoom: CarnivalRoom 'The Secret Room'
 ;
 
 gameMain: GameMainDef
+	// We're not interactive but we still define a player character
+	// because pathfinding uses gameMain.initialPlayerChar to test
+	// travel connectors and their destinations.
 	initialPlayerChar = me
+
 	newGame() {
+		// Path from one end of the map to another, crossing multiple
+		// zones.
+		_logPath(bedroom, secretRoom);
+
+		// Same path in reverse.
+		_logPath(secretRoom, bedroom);
+
+		// Path entirely inside one zone, single step.
+		_logPath(bedroom, hallway);
+
+		// Path from edge of one zone to edge of the adjacent zone.
+		_logPath(frontYard, downtownWest);
+	}
+
+	// Utility method to compute/look up a path and output it.
+	_logPath(rm0, rm1) {
 		local l;
 
-		l = routeTableRoom.getPath(bedroom, secretRoom);
-		"Path from <q><<bedroom.name>></q>
-			<q><<secretRoom.name>></q>\n ";
+		"Path from <q><<rm0.name>></q>
+			<q><<rm1.name>></q>\n ";
+		l = routeTableRoom.findPath(rm0, rm1);
 		l.forEach(function(o) {
 			"\t<<o.routeTableID>>:  <<o.name>>\n ";
 		});
+		"<.p> ";
 	}
 ;
