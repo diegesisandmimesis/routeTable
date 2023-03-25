@@ -41,27 +41,19 @@ versionInfo:    GameID
 class HouseZone: Room
 	routeTableZone = 'house'
 ;
-class HouseRoom: HouseZone
-;
-class HouseOutdoor: HouseZone, OutdoorRoom
-;
+class HouseRoom: HouseZone;
+class HouseOutdoor: HouseZone, OutdoorRoom;
 
 class TownZone: Room
 	routeTableZone = 'town'
 ;
-
-class TownOutdoor: TownZone, OutdoorRoom
-;
+class TownOutdoor: TownZone, OutdoorRoom;
 
 class CarnivalZone: Room
 	routeTableZone = 'carnival'
 ;
-
-class CarnivalRoom: CarnivalZone
-;
-
-class CarnivalOutdoor: CarnivalZone, OutdoorRoom
-;
+class CarnivalRoom: CarnivalZone;
+class CarnivalOutdoor: CarnivalZone, OutdoorRoom;
 
 bedroom: HouseRoom 'Your Bedroom'
         "This is your minimally-implemented bedroom.  The hallway lies to the
@@ -162,8 +154,11 @@ gameMain: GameMainDef
 	newGame() {
 		local l;
 
-		l = routeTableRoot.getPath(bedroom, secretRoom);
+		l = routeTableRoom.getPath(bedroom, secretRoom);
+		"Path from <q><<bedroom.name>></q>
+			<q><<secretRoom.name>></q>\n ";
 		l.forEach(function(o) {
+			"\t<<o.routeTableID>>:  <<o.name>>\n ";
 		});
 	}
 ;

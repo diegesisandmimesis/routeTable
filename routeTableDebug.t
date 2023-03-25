@@ -10,7 +10,7 @@
 #ifdef __DEBUG_ROUTE_TABLE
 
 modify RouteTableObject
-	_debug(msg?) { aioSay('\n\t<<(svc ? '<<svc>>: ' : '')>><<msg>>\n '); }
+	_debug(msg?) { aioSay('\n<<(svc ? '<<svc>>: ' : '')>><<msg>>\n '); }
 ;
 
 #endif // __DEBUG_ROUTE_TABLE
