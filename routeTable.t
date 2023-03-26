@@ -126,7 +126,20 @@ class RouteTable: RouteTableObject, SimpleGraphDirected
 
 		return(true);
 	}
+
+	clearRouteTableBridges() {
+		local l;
+
+		l = _routeTableBridge.keysToList();
+
+		l.forEach(function(o) {
+			_routeTableBridge.removeElement(o);
+			l += o;
+		});
+
+		return(l);
+	}
 ;
 
-class RouteTableRoot: RouteTable, PreinitObject
-;
+//class RouteTableRoot: RouteTable, PreinitObject
+//;

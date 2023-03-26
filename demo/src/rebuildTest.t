@@ -43,10 +43,18 @@ hallway: HouseRoom 'The Hallway'
 		the east and the kitchen lies to the west.  The back yard
 		is south from here, and you can leave your house by going
 		north. "
-	north = frontYard
+	north = frontDoorHouse
 	south = backYard
 	east = bedroom
 	west = kitchen
+;
++frontDoorHouse: ThroughPassage '(front) door' 'front door'
+	destination() { return(stuck ? nil : frontYard); }
+	stuck = nil
+
+	canTravellerPass(a) { return(!stuck); }
+	explainTravelBarrier(a) { "The front door is currently stuck. "; }
+	noteTraversal(a) { "{You/he} head{s} through the front door. "; }
 ;
 
 kitchen: HouseRoom 'The Kitchen'
@@ -60,12 +68,16 @@ backYard: HouseOutdoor 'Your Back Yard'
 	north = hallway
 ;
 
-frontYard: HouseOutdoor 'Your Front Yard'
+frontYard: TownZone 'Your Front Yard'
 	"This is the generic front yard of your generic house.  The rest of
 		the generic town is to the north of here.  You can enter
 		your house to the south. "
 	north = downtownWest
 	south = hallway
+;
++frontDoorYard: Door '(front) door' 'front door'
+	masterObject = frontDoorHouse
+	noteTraversal(a) { "{You/he} head{s} through the front door. "; }
 ;
 
 downtownWest: TownZone 'Downtown West'
@@ -136,7 +148,8 @@ gameMain: GameMainDef
 		// zones.
 		_logPath(bedroom, secretRoom);
 
-		routeTableRoom.rebuildZone('town');
+		frontDoorHouse.stuck = true;
+		routeTableRoomRouter.rebuildZone('house');
 
 		_logPath(bedroom, secretRoom);
 	}
@@ -147,7 +160,7 @@ gameMain: GameMainDef
 
 		"Path from <q><<rm0.name>></q> to
 			<q><<rm1.name>></q>\n ";
-		l = routeTableRoom.findPath(rm0, rm1);
+		l = routeTableRoomRouter.findPath(rm0, rm1);
 		l.forEach(function(o) {
 			"\t<<o.routeTableID>>:  <<o.name>>\n ";
 		});

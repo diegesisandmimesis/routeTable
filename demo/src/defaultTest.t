@@ -153,7 +153,7 @@ gameMain: GameMainDef
 
 		"Path from <q><<rm0.name>></q> to
 			<q><<rm1.name>></q>\n ";
-		l = routeTableRoom.findPath(rm0, rm1);
+		l = routeTableRoomRouter.findPath(rm0, rm1);
 		l.forEach(function(o) {
 			"\t<<o.routeTableID>>:  <<o.name>>\n ";
 		});

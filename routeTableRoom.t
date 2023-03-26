@@ -18,7 +18,7 @@ modify Room
 ;
 
 // Our top-level router for Room instances.
-routeTableRoom: RouteTableRoot
+routeTableRoomRouter: RouteTableRouter
 	// We use the vanilla vertex class for our vertices, even though
 	// every vertex in the zone graph is in fact a graph itself.
 	// SimpleGraphVertex lets us add arbitrary data to each object, so
@@ -28,7 +28,11 @@ routeTableRoom: RouteTableRoot
 	// method/property name collisions.
 	vertexClass = SimpleGraphVertex
 
+	routeTableType = roomRouteTable
+
 	execute() {
+		inherited();
+
 		// Go through every room and try to figure out what zones to
 		// add.
 		forEachInstance(Room, function(o) { addRoomToZone(o); });
@@ -301,8 +305,10 @@ routeTableRoom: RouteTableRoot
 		v = getRouteTableZone(rm0.routeTableZone);
 
 		// Look up the bridge between the zone we're in and the
-		// next zone in the path.
-		b = v.getRouteTableBridge(l[2]);
+		// next zone in the path.  If there's no bridge, there's
+		// no path.  Fail.
+		if((b = v.getRouteTableBridge(l[2])) == nil)
+			return(nil);
 
 		// A bridge lookup returns a vector of the source and
 		// destination nodes that connect the zones.  So if
@@ -329,14 +335,9 @@ routeTableRoom: RouteTableRoot
 
 		r = new Vector();
 		v = rm0;
-		r.append(v);
-		while(v != rm1) {
-			if(v == nil) {
-				_debug('got bogus path');
-				return(r);
-			}
-			v = getRouteTableNextHop(v, rm1);
+		while((v != rm1) && (v != nil)) {
 			r.append(v);
+			v = getRouteTableNextHop(v, rm1);
 		}
 
 		return(r);
@@ -349,6 +350,12 @@ routeTableRoom: RouteTableRoot
 		clearZoneNextHopTables(id, g);
 		clearIntrazoneEdges(id, g);
 		buildZoneRouteTable(id, g);
+
+		g.clearRouteTableBridges().forEach(function(o) {
+			getRouteTableZone(o).clearRouteTableBridges();
+		});
+		// Rebuild bridges
+		forEachInstance(Room, function(o) { addBridgesToZone(o); });
 	}
 ;
 
