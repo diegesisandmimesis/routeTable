@@ -17,6 +17,51 @@ modify Room
 	routeTableZone = nil
 ;
 
+class RouteTableRoom: RouteTable
+	addIntrazoneEdgesForVertex(k, v, a) {
+		local c, dst, rm;
+
+		// The data on each vertex in the zone's routing table
+		// is the Room instance for that vertex.
+		rm = v.getData();
+
+		// We should never have no data for a vertex, but we
+		// check anyway.
+		if(rm == nil) {
+			_debug('no room data for <<k>> in zone <<id>>');
+			return;
+		}
+
+		// Now we go through all the directions.
+		Direction.allDirections.forEach(function(d) {
+			// Check to see if there's a connector from
+			// this room in the given direction, for the
+			// given actor.
+			if((c = rm.getTravelConnector(d, a)) == nil)
+				return;
+
+			// Now see if there's a destination for the
+			// connector when it's this actor coming from
+			// this room.
+			if((dst = c.getDestination(rm, a)) == nil)
+				return;
+
+			// If the room loops back on itself we don't
+			// need to do anything.
+			if(rm == dst)
+				return;
+
+			// If the destination isn't in the same zone
+			// as this room, skip it.
+			if(rm.routeTableZone != dst.routeTableZone)
+				return;
+
+			// Add the edge.
+			addEdge(rm.routeTableID, dst.routeTableID, true);
+		});
+	}
+;
+
 // Our top-level router for Room instances.
 routeTableRoomRouter: RouteTableRouter
 	// We use the vanilla vertex class for our vertices, even though
@@ -66,7 +111,7 @@ routeTableRoomRouter: RouteTableRouter
 			// try to multiclass the vertex and graph together
 			// because that would cause property and method name
 			// collisions.
-			v.setData(new RouteTable());
+			v.setData(new RouteTableRoom());
 		}
 
 		// Get the route table for the zone.
@@ -147,59 +192,6 @@ routeTableRoomRouter: RouteTableRouter
 		return(true);
 	}
 
-	// Add all the edges to the given zone.  id is the zone ID, z is
-	// the zone's vertex in the main zone routing table.
-	addIntrazoneEdges(id, g) {
-		local a, c, dst, rm;
-
-		// Use the initial player to figure out connectivity.
-		a = gameMain.initialPlayerChar;
-
-		// Go through all of the zone's vertices.  There will be one
-		// per room in the zone.
-		g.getVertices().forEachAssoc(function(k, v) {
-			// The data on each vertex in the zone's routing table
-			// is the Room instance for that vertex.
-			rm = v.getData();
-
-			// We should never have no data for a vertex, but we
-			// check anyway.
-			if(rm == nil) {
-				_debug('no room data for <<k>> in zone <<id>>');
-				return;
-			}
-
-			// Now we go through all the directions.
-			Direction.allDirections.forEach(function(d) {
-				// Check to see if there's a connector from
-				// this room in the given direction, for the
-				// given actor.
-				if((c = rm.getTravelConnector(d, a)) == nil)
-					return;
-
-				// Now see if there's a destination for the
-				// connector when it's this actor coming from
-				// this room.
-				if((dst = c.getDestination(rm, a)) == nil)
-					return;
-
-				// If the room loops back on itself we don't
-				// need to do anything.
-				if(rm == dst)
-					return;
-
-				// If the destination isn't in the same zone
-				// as this room, skip it.
-				if(rm.routeTableZone != dst.routeTableZone)
-					return;
-
-				// Add the edge.
-				g.addEdge(rm.routeTableID, dst.routeTableID,
-					true);
-			});
-		});
-	}
-
 	// Compute all the intrazone next-hop route tables.
 	// These allow us to check any given vertex/room in a zone and ask
 	// it what the next room is in the path to any other room in the
@@ -219,38 +211,13 @@ routeTableRoomRouter: RouteTableRouter
 	buildZoneRouteTable(id, g) {
 		// First we add all the edges (connections between
 		// rooms) to the zone's graph.
-		addIntrazoneEdges(id, g);
+		//addIntrazoneEdges(id, g);
+		g.addIntrazoneEdges();
 
 		// Now we compute all the next-hop route information
 		// for each vertex (room) in the zone's graph.
-		buildZoneNextHopTables(id, g);
-	}
-
-	// Create the next hop route table for the given zone.  id is the
-	// zone ID and g is the zone vertex in the zone routing table.
-	buildZoneNextHopTables(id, g) {
-		local l, p, v;
-
-		// LookupTable of all the vertices in this zone.
-		l = g.getVertices();
-
-		// Go through each vertex in the zone...
-		l.forEachAssoc(function(k0, v0) {
-			// ...and check it against every other vertex in the
-			// zone.
-			l.forEachAssoc(function(k1, v1) {
-				// Make sure we're not trying to compute a
-				// path to ourselves.
-				if(k0 == k1)
-					return;
-
-				// Get the Dijkstra path between the vertices.
-				if((p = g.dijkstraPath(k0, k1)) == nil)
-					return;
-				v = g.getVertex(p[2]);
-				v0.setRouteTableNextHop(k1, v.getData());
-			});
-		});
+		//buildZoneNextHopTables(id, g);
+		g.buildNextHopRouteTables();
 	}
 
 	// Clear this zone's graph.
@@ -299,7 +266,7 @@ routeTableRoomRouter: RouteTableRouter
 			return(nil);
 		}
 
-		_debug('next hop path = <<toString(l)>>');
+		_debug('next hop zone path = <<toString(l)>>');
 
 		// Get the source zone.
 		v = getRouteTableZone(rm0.routeTableZone);

@@ -128,16 +128,61 @@ class RouteTable: RouteTableObject, SimpleGraphDirected
 	}
 
 	clearRouteTableBridges() {
-		local l;
+		local r;
 
-		l = _routeTableBridge.keysToList();
+		r = new Vector();
 
-		l.forEach(function(o) {
+		_routeTableBridge.keysToList().forEach(function(o) {
 			_routeTableBridge.removeElement(o);
-			l += o;
+			r += o;
 		});
 
-		return(l);
+		return(r);
+	}
+
+	// Add all the edges between vertices in this zone.
+	addIntrazoneEdges() {
+		local a;
+
+		// Use the initial player to figure out connectivity.
+		a = gameMain.initialPlayerChar;
+
+		// Go through all of the zone's vertices.  There will be one
+		// per room in the zone.
+		getVertices().forEachAssoc(function(k, v) {
+			// Route table type-specific method for adding
+			// edges.  For an example see routeTableRoomRouter.
+			addIntrazoneEdgesForVertex(k, v, a);
+		});
+	}
+
+	// Stub method, doesn't do anything.
+	addIntrazoneEdgesForVertex(k, v, a) {}
+
+	// Create the next hop route tables on each vertex in our zone.
+	buildNextHopRouteTables() {
+		local l, p, v;
+
+		// LookupTable of all the vertices in this zone.
+		l = getVertices();
+
+		// Go through each vertex in the zone...
+		l.forEachAssoc(function(k0, v0) {
+			// ...and check it against every other vertex in the
+			// zone.
+			l.forEachAssoc(function(k1, v1) {
+				// Make sure we're not trying to compute a
+				// path to ourselves.
+				if(k0 == k1)
+					return;
+
+				// Get the Dijkstra path between the vertices.
+				if((p = dijkstraPath(k0, k1)) == nil)
+					return;
+				v = getVertex(p[2]);
+				v0.setRouteTableNextHop(k1, v.getData());
+			});
+		});
 	}
 ;
 
