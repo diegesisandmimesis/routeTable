@@ -17,6 +17,9 @@ modify Room
 	routeTableZone = nil
 ;
 
+// Room-specific RouteTable class.
+// Each kind of router needs to know how to figure out how vertices are
+// connected, with rooms it's exits, and here's where we do it.
 class RouteTableRoom: RouteTable
 	addIntrazoneEdgesForVertex(k, v, a) {
 		local c, dst, rm;
@@ -190,139 +193,6 @@ routeTableRoomRouter: RouteTableRouter
 		v.addRouteTableBridge(dst.routeTableZone, src, dst);
 
 		return(true);
-	}
-
-	// Compute all the intrazone next-hop route tables.
-	// These allow us to check any given vertex/room in a zone and ask
-	// it what the next room is in the path to any other room in the
-	// same zone.
-	buildZoneRouteTables() {
-		// Each of our vertices is a zone, and each zone is
-		// a graph.  So we go through our vertices and tell each
-		// one to go through each of ITS vertices and make a next
-		// hop table for every possible path through itself.
-		getVertices().forEachAssoc(function(k, v) {
-			buildZoneRouteTable(k, v.getData());
-		});
-	}
-
-	// Build an individual zone's route table.  The ID is the zone
-	// ID, and z is the zone graph.
-	buildZoneRouteTable(id, g) {
-		// First we add all the edges (connections between
-		// rooms) to the zone's graph.
-		//addIntrazoneEdges(id, g);
-		g.addIntrazoneEdges();
-
-		// Now we compute all the next-hop route information
-		// for each vertex (room) in the zone's graph.
-		//buildZoneNextHopTables(id, g);
-		g.buildNextHopRouteTables();
-	}
-
-	// Clear this zone's graph.
-	clearIntrazoneEdges(id, g) {
-		g.edgeIDList().forEach(function(o) {
-			g.removeEdge(o[1], o[2]);
-		});
-	}
-
-	// Clear this zones next hop tables.
-	clearZoneNextHopTables(id, g) {
-		g.getVertices().forEachAssoc(function(k, v) {
-			v.clearRouteTableNextHop();
-		});
-	}
-
-	getRouteTableZone(id) {
-		local v;
-
-		if((v = getVertex(id)) == nil)
-			return(nil);
-		return(v.getData());
-	}
-
-	getRouteTableNextHop(rm0, rm1) {
-		local b, i, l, o, v;
-
-		_debug('computing next hop from <<rm0.routeTableID>>
-			to <<rm1.routeTableID>>');
-		// If both rooms are the in same zone, just ask the
-		// room what the next hop is (it should be precomputed).
-		if(rm0.routeTableZone == rm1.routeTableZone) {
-			_debug('returning precomputed next hop');
-			o = getRouteTableZone(rm0.routeTableZone);
-			v = o.getVertex(rm0.routeTableID);
-			return(v.getRouteTableNextHop(rm1.routeTableID));
-		}
-
-		// Get the path from the zone the source room is in to
-		// the zone the destination room is in.
-		l = dijkstraPath(rm0.routeTableZone, rm1.routeTableZone);
-		if((l == nil) || (l.length < 2)) {
-			_debug('no path between zones
-				<q><<rm0.routeTableZone>></q>
-				and <q><<rm1.routeTableZone>></q>');
-			return(nil);
-		}
-
-		_debug('next hop zone path = <<toString(l)>>');
-
-		// Get the source zone.
-		v = getRouteTableZone(rm0.routeTableZone);
-
-		// Look up the bridge between the zone we're in and the
-		// next zone in the path.  If there's no bridge, there's
-		// no path.  Fail.
-		if((b = v.getRouteTableBridge(l[2])) == nil)
-			return(nil);
-
-		// A bridge lookup returns a vector of the source and
-		// destination nodes that connect the zones.  So if
-		// any of the first nodes matches our current room, then
-		// we're already at the threshold of the next zone, and
-		// our next hop is the second node in the bridge.
-		for(i = 1; i <= b.length; i++) {
-			o = b[i];
-			if(o[1] == rm0) {
-				_debug('at zone boundary, returning
-					bridge next hop');
-				return(o[2]);
-			}
-		}
-
-		// We DIDN'T match any bridge endpoints, so instead
-		// we path to a near-side bridge endpoint.
-		_debug('pathing to near side of zone bridge');
-		return(getRouteTableNextHop(rm0, o[1]));
-	}
-
-	findPath(rm0, rm1) {
-		local r, v;
-
-		r = new Vector();
-		v = rm0;
-		while((v != rm1) && (v != nil)) {
-			r.append(v);
-			v = getRouteTableNextHop(v, rm1);
-		}
-
-		return(r);
-	}
-
-	rebuildZone(id) {
-		local g;
-
-		g = getRouteTableZone(id);
-		clearZoneNextHopTables(id, g);
-		clearIntrazoneEdges(id, g);
-		buildZoneRouteTable(id, g);
-
-		g.clearRouteTableBridges().forEach(function(o) {
-			getRouteTableZone(o).clearRouteTableBridges();
-		});
-		// Rebuild bridges
-		forEachInstance(Room, function(o) { addBridgesToZone(o); });
 	}
 ;
 
