@@ -201,16 +201,17 @@ class RouteTableRandomTest: RouteTableTest
 	// in every cell, we connect either up or to the right, but
 	// never both.
 	_buildMap() {
-		local i;
+		local i, top;
 
+		top = _mapSize - _mapWidth;
 		// Not a typo, we don't twiddle the last cell.
 		for(i = 1; i < _mapSize; i++) {
-			if((i % 10) == 0) {
-				// If i % 10 is zero, then we're at the
+			if((i % _mapWidth) == 0) {
+				// If i % _mapWidth is zero, then we're at the
 				// the east edge, so we have to go north.
-				_connectRooms(i, i + 10, 'n');
-			} else if(i > 90) {
-				// If the room number is > 90, we're at the
+				_connectRooms(i, i + _mapWidth, 'n');
+			} else if(i > top) {
+				// If the room number is > top, we're at the
 				// north edge, so we have to go east.
 				_connectRooms(i, i + 1, 'e');
 			} else {
@@ -218,7 +219,7 @@ class RouteTableRandomTest: RouteTableTest
 				// edge, so we roll the dice and randomly
 				// go north or east.
 				if(rand(2) == 1) {
-					_connectRooms(i, i + 10, 'n');
+					_connectRooms(i, i + _mapWidth, 'n');
 				} else {
 					_connectRooms(i, i + 1, 'e');
 				}
