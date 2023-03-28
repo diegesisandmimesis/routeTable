@@ -25,6 +25,11 @@
 versionInfo: GameID;
 
 modify routeTableRoomRouter;
++RouteTableZone 'house'
+	routeTableStaticRoutes = static [
+		'town' -> hallway
+	]
+;
 
 // Same configuration as sample.t
 class HouseRoom: Room routeTableZone = 'house';

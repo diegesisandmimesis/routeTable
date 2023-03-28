@@ -30,14 +30,14 @@ versionInfo: GameID;
 // rooms, but this is a little cleaner.
 // We also declare a "generic" zone and then a separate class for indoor
 // and outdoor rooms, but that has nothing to do with the pathfinding logic.
-class HouseZone: Room
+class HouseRoom: Room
 	routeTableZone = 'house'
 ;
-class HouseRoom: HouseZone;
-class HouseOutdoor: HouseZone, OutdoorRoom;
+class HouseIndoor: HouseRoom;
+class HouseOutdoor: HouseRoom, OutdoorRoom;
 //
 // All the "town" locations are outdoor, so we only define one class.
-class TownZone: OutdoorRoom
+class TownRoom: OutdoorRoom
 	routeTableZone = 'town'
 ;
 //
@@ -50,24 +50,24 @@ class TownZone: OutdoorRoom
 // ticket booth changes).  You could also have more granularity--the hall of
 // mirrors might be its own zone if the map layout of the interior changes, for
 // example.
-class CarnivalZone: Room
+class CarnivalRoom: Room
 	routeTableZone = 'carnival'
 ;
-class CarnivalRoom: CarnivalZone;
-class CarnivalOutdoor: CarnivalZone, OutdoorRoom;
+class CarnivalIndoor: CarnivalRoom;
+class CarnivalOutdoor: CarnivalRoom, OutdoorRoom;
 
 // ROOM DEFINITIONS
 //
 // HOUSE ROOMS
 //
-bedroom: HouseRoom 'Your Bedroom'
+bedroom: HouseIndoor 'Your Bedroom'
         "This is your minimally-implemented bedroom.  The hallway lies to the
 		west. "
 	west = hallway
 ;
 +me: Person;
 
-hallway: HouseRoom 'The Hallway'
+hallway: HouseIndoor 'The Hallway'
 	"This is the featureless hallway of your house.  Your bedroom is to
 		the east and the kitchen lies to the west.  The back yard
 		is south from here, and you can leave your house by going
@@ -78,7 +78,7 @@ hallway: HouseRoom 'The Hallway'
 	west = kitchen
 ;
 
-kitchen: HouseRoom 'The Kitchen'
+kitchen: HouseIndoor 'The Kitchen'
 	"This is theoretically a kitchen. "
 	east = hallway
 ;
@@ -89,7 +89,10 @@ backYard: HouseOutdoor 'Your Back Yard'
 	north = hallway
 ;
 
-frontYard: HouseOutdoor 'Your Front Yard'
+//
+// TOWN ROOMS
+//
+frontYard: TownRoom 'Your Front Yard'
 	"This is the generic front yard of your generic house.  The rest of
 		the generic town is to the north of here.  You can enter
 		your house to the south. "
@@ -97,10 +100,7 @@ frontYard: HouseOutdoor 'Your Front Yard'
 	south = hallway
 ;
 
-//
-// TOWN ROOMS
-//
-downtownWest: TownZone 'Downtown West'
+downtownWest: TownRoom 'Downtown West'
 	"This is the west end of downtown, which much resembles the east
 		end of downtown.  Your house is conveniently exactly one
 		step due south of here. "
@@ -108,14 +108,14 @@ downtownWest: TownZone 'Downtown West'
 	east = downtownEast
 ;
 
-downtownEast: TownZone 'Downtown East'
+downtownEast: TownRoom 'Downtown East'
 	"This is the east end of downtown, which much resembles the west
 		end of downtown.  The outskirts of town are north of here. "
 	north = outskirts
 	west = downtownWest
 ;
 
-outskirts: TownZone 'The Outskirts of Town'
+outskirts: TownRoom 'The Outskirts of Town'
 	"This is the outskirts of town, where sparsely implemented meets
 		completely unimplemented.  The town itself lies to the south.
 		A placeholder carnival is apparently in town;  you can enter
@@ -145,7 +145,7 @@ midway: CarnivalOutdoor 'The Carnival Midway'
 	west = ticketBooth
 ;
 
-hallOfMirrors: CarnivalRoom 'The Hall of Mirrors'
+hallOfMirrors: CarnivalIndoor 'The Hall of Mirrors'
 	"This is the hall of mirrors.  Srorrim fo llah eht si siht.
 		<.p>
 		The inappropriately-named secret room is just north of here.
@@ -154,7 +154,7 @@ hallOfMirrors: CarnivalRoom 'The Hall of Mirrors'
 	west = midway
 ;
 
-secretRoom: CarnivalRoom 'The Secret Room'
+secretRoom: CarnivalIndoor 'The Secret Room'
 	"This is the secret room in the hall of mirrors, for whatever
 		that's worth. "
 	south = hallOfMirrors

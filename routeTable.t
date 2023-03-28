@@ -38,7 +38,7 @@
 //
 // ...and so on.
 //
-// Zones should generally consist of contiguous blocks of rooms whose
+// Zones should consist of contiguous blocks of rooms whose
 // reachability is toggled by something in the game state:  a drawbridge
 // that goes up and down, a door that needs a key, a shop that is only open
 // on certain days, and that kind of thing.
@@ -69,16 +69,20 @@ routeTableModuleID: ModuleID {
 enum roomRouteTable, dialogRouteTable, goalRouteTable, procgenRouteTable;
 
 // Class for our routing tables.  The base class is a directed graph.
+// This is just the stub class.  Almost all of the functionality lives
+// in routeTableBridge.t, routeTableIntrazone.t, routeTableNextHop.t,
+// and RouteTableStatic.t.
 class RouteTable: RouteTableNextHopGraph, RouteTableNextHopVertex,
 	SimpleGraphDirected
 
 	// The class to use for our graph vertices.
-	vertexClass = RouteTableVertex
+	vertexClass = RouteTableZone
 
 	// The table type.  In most cases this will probably be
 	// roomRouteTable, which is to say we handle pathing between rooms.
 	routeTableType = nil
 
+/*
 	// Called by the router.  This is only used if this zone has been
 	// declared via the +[object] syntax under the router.  We
 	// add ourselves to the list of zones the router manages.
@@ -90,4 +94,5 @@ class RouteTable: RouteTableNextHopGraph, RouteTableNextHopVertex,
 
 		return(true);
 	}
+*/
 ;

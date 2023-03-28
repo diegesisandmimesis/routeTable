@@ -51,13 +51,13 @@ class RouteTableRouter: RouteTableNextHopGraph, SimpleGraphDirected,
 	// Find and remember all of the statically-declared zones we're
 	// configured to care about.
 	initializeStaticRouteTableZones() {
-		forEachInstance(RouteTable, function(o) {
+		forEachInstance(RouteTableZone, function(o) {
 			// If there's no zone ID defined on this zone, skip it.
 			if(o.routeTableZoneID == nil)
 				return;
 
 			// Handle zones declared with the +[object] syntax.
-			if(o.initializeRouteTable() == true)
+			if(o.initializeRouteTableZone() == true)
 				return;
 
 			// If we have a defined type and it doesn't match
@@ -72,7 +72,7 @@ class RouteTableRouter: RouteTableNextHopGraph, SimpleGraphDirected,
 
 	// Add a single statically-declared zone, maybe.
 	addStaticRouteTableZone(z) {
-		if((z == nil) || (!z.ofKind(RouteTable)))
+		if((z == nil) || (!z.ofKind(RouteTableZone)))
 			return(nil);
 
 		// If the zone is already defined, skip it.
@@ -240,10 +240,25 @@ class RouteTableRouter: RouteTableNextHopGraph, SimpleGraphDirected,
 		v = getRouteTableZone(v0.routeTableZone);
 
 		// Look up the bridge between the zone we're in and the
-		// next zone in the path.  If there's no bridge, there's
-		// no path.  Fail.
-		if((b = v.getRouteTableBridge(l[2])) == nil)
-			return(nil);
+		// next zone in the path.
+		if((b = v.getRouteTableBridge(l[2])) == nil) {
+			// No bridge, so now we see if there's a static
+			// route defined.
+
+			// First we get the vertex for the source zone.
+			v = getVertex(v0.routeTableZone);
+
+			// We check to see if the source zone has a
+			// static route for the next zone in the path.
+			// If not, we're done, fail.
+			if((p = v.getRouteTableStatic(l[2])) == nil)
+				return(nil);
+
+			// We got a static route, so we try pathing
+			// from the source vertex to the static
+			// bridge vertex.
+			return(getRouteTableNextHop(v0, p));
+		}
 
 		// If there's only one bridge, we use it.  Otherwise
 		// we check the path length through each bridge and
@@ -258,7 +273,7 @@ class RouteTableRouter: RouteTableNextHopGraph, SimpleGraphDirected,
 			p = selectRouteTableBridge(v0, v1, b);
 
 
-		// None of the bridges gave us a valid path.
+		// We couldn't figure anything out, fail.
 		if(p == nil)
 			return(nil);
 

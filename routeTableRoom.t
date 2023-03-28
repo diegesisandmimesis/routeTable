@@ -17,7 +17,7 @@ modify Room
 	routeTableZone = nil
 ;
 
-class RouteTableZoneRoom: SimpleGraphVertex, RouteTableNextHopVertex;
+//class RouteTableZoneRoom: RouteTableZone;
 
 // Room-specific RouteTable class.
 // Each kind of router needs to know how to figure out how vertices are
@@ -83,7 +83,7 @@ routeTableRoomRouter: RouteTableRouter
 	// vertex as data.  We DON'T multi-class/mixin both the graph and
 	// vertex stuff onto a single object because that would cause
 	// method/property name collisions.
-	vertexClass = RouteTableZoneRoom
+	vertexClass = RouteTableZone
 
 	routeTableType = roomRouteTable
 
