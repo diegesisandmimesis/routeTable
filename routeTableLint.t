@@ -28,12 +28,22 @@ class RouteTableTest: RouteTableObject
 	// Time when test was started.
 	_start = nil
 
+	// Minimum interval;  used to avoid divide-by-zero problems.
+	_minInterval = perInstance(new BigNumber(0.000001))
+
 	// Save the time when a test started.
 	startTimer() { _start = new Date(); }
 
+	_max(v0, v1) { return((v0 > v1) ? v0 : v1); }
+
 	// Get the number of seconds since the start of the test.
 	getInterval() {
-		return((_start != nil) ? ((new Date() - _start) * 86400) : nil);
+		return(_max(
+			((_start != nil)
+				? ((new Date() - _start) * 86400)
+				: nil),
+			_minInterval
+		));
 	}
 
 	runTest() {}
@@ -96,22 +106,22 @@ class RouteTablePerfTest: RouteTableTest
 	output() {
 		local ratio;
 
-		ratio = ((nativeTime > routeTableTime)
-			?  (nativeTime / routeTableTime)
-			: (routeTableTime / nativeTime));
-
 		"\nrouteTableRoomRouter.findPath() took
 			<<toString(routeTableTime.roundToDecimal(3))>>
 			seconds\n ";
 		"\nroomPathFinder.findPath() took
 			<<toString(nativeTime.roundToDecimal(3))>>
 			seconds\n ";
-		if(routeTableTime > nativeTime)
+
+		if(routeTableTime > nativeTime) {
+			ratio = routeTableTime / nativeTime;
 			"\nslowdown factor of
 				<<toString(ratio.roundToDecimal(3))>>\n ";
-		else
+		} else {
+			ratio = nativeTime / routeTableTime;
 			"\nspeedup factor of
 				<<toString(ratio.roundToDecimal(3))>>\n ";
+		}
 	}
 ;
 
@@ -123,14 +133,18 @@ class RouteTableRandomTest: RouteTableTest
 	_mapWidth = nil		// length of a side of the map
 	_mapSize = nil		// total number of rooms in the map
 
+	_iterations = nil	// number of pathfinding passes to run
+
 	_graph = nil		// graph of the rooms.
 
-	construct(n?) {
+	construct(n?, i?) {
 		// By default, we build a 10x10 maze.
 		_mapWidth = ((n != nil) ? n : 10);
 
 		// Map size is the square of the width.
 		_mapSize = _mapWidth * _mapWidth;
+
+		_iterations = ((i != nil) ? i : nil);
 	}
 
 	// Preinit method.  Here's where we build the map.
@@ -142,7 +156,8 @@ class RouteTableRandomTest: RouteTableTest
 
 	// Runtime method.  Run the tests.
 	runTest() {
-		new RouteTablePerfTest(_getRoom(1), _getRoom(2)).runTest();
+		new RouteTablePerfTest(_getRoom(1), _getRoom(2),
+			_iterations).runTest();
 	}
 
 	// Create a graph for our map.
