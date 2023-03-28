@@ -25,7 +25,21 @@
 versionInfo: GameID;
 
 modify routeTableRoomRouter;
+// Illustration of the static zone declaration syntax.  In general
+// you don't have to bother with this, but we want to declare a static
+// route.
 +RouteTableZone 'house'
+	// Here we declare a static route.
+	// In this "game" we can toggle the front door of the house, making
+	// it stuck or unstuck.  If it's stuck, we can't pass.
+	// If we DIDN'T have a static route, then findPath(bedroom, secretRoom)
+	// wouldn't return any path information...because the path between the
+	// endpoints is blocked.
+	// Here, we figure out that if we need to get from the "house"
+	// zone (that's where this declaration is) to the "town" zone (the
+	// key in the lookup table declared below), then we'll try pathing
+	// to the "hallway" location.
+	// For more information, check routeTableZone.t
 	routeTableStaticRoutes = static [
 		'town' -> hallway
 	]
