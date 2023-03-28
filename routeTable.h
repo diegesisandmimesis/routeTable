@@ -20,5 +20,7 @@
 #error "should be in /home/user/tads/simpleGraph ."
 #endif // SIMPLE_GRAPH_H
 
+RouteTableZone template 'routeTableZoneID';
+
 // Do not comment this out.  It's used for dependency checking.
 #define ROUTE_TABLE_H

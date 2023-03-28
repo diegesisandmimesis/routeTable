@@ -19,26 +19,30 @@
 #include <adv3.h>
 #include <en_us.h>
 
+#include "routeTable.h"
+
 // No version info; we're never interactive.
 versionInfo: GameID;
 
-// Same configuration as sample.t
-class HouseZone: Room routeTableZone = 'house';
-class HouseRoom: HouseZone;
-class HouseOutdoor: HouseZone, OutdoorRoom;
-class TownZone: OutdoorRoom routeTableZone = 'town';
-class CarnivalZone: Room routeTableZone = 'carnival';
-class CarnivalRoom: CarnivalZone;
-class CarnivalOutdoor: CarnivalZone, OutdoorRoom;
+modify routeTableRoomRouter;
 
-bedroom: HouseRoom 'Your Bedroom'
+// Same configuration as sample.t
+class HouseRoom: Room routeTableZone = 'house';
+class HouseIndoor: HouseRoom;
+class HouseOutdoor: HouseRoom, OutdoorRoom;
+class TownRoom: OutdoorRoom routeTableZone = 'town';
+class CarnivalRoom: Room routeTableZone = 'carnival';
+class CarnivalIndoor: CarnivalRoom;
+class CarnivalOutdoor: CarnivalRoom, OutdoorRoom;
+
+bedroom: HouseIndoor 'Your Bedroom'
         "This is your minimally-implemented bedroom.  The hallway lies to the
 		west. "
 	west = hallway
 ;
 +me: Person;
 
-hallway: HouseRoom 'The Hallway'
+hallway: HouseIndoor 'The Hallway'
 	"This is the featureless hallway of your house.  Your bedroom is to
 		the east and the kitchen lies to the west.  The back yard
 		is south from here, and you can leave your house by going
@@ -57,7 +61,7 @@ hallway: HouseRoom 'The Hallway'
 	noteTraversal(a) { "{You/he} head{s} through the front door. "; }
 ;
 
-kitchen: HouseRoom 'The Kitchen'
+kitchen: HouseIndoor 'The Kitchen'
 	"This is theoretically a kitchen. "
 	east = hallway
 ;
@@ -68,7 +72,7 @@ backYard: HouseOutdoor 'Your Back Yard'
 	north = hallway
 ;
 
-frontYard: TownZone 'Your Front Yard'
+frontYard: TownRoom 'Your Front Yard'
 	"This is the generic front yard of your generic house.  The rest of
 		the generic town is to the north of here.  You can enter
 		your house to the south. "
@@ -80,7 +84,7 @@ frontYard: TownZone 'Your Front Yard'
 	noteTraversal(a) { "{You/he} head{s} through the front door. "; }
 ;
 
-downtownWest: TownZone 'Downtown West'
+downtownWest: TownRoom 'Downtown West'
 	"This is the west end of downtown, which much resembles the east
 		end of downtown.  Your house is conveniently exactly one
 		step due south of here. "
@@ -88,14 +92,14 @@ downtownWest: TownZone 'Downtown West'
 	east = downtownEast
 ;
 
-downtownEast: TownZone 'Downtown East'
+downtownEast: TownRoom 'Downtown East'
 	"This is the east end of downtown, which much resembles the west
 		end of downtown.  The outskirts of town are north of here. "
 	north = outskirts
 	west = downtownWest
 ;
 
-outskirts: TownZone 'The Outskirts of Town'
+outskirts: TownRoom 'The Outskirts of Town'
 	"This is the outskirts of town, where sparsely implemented meets
 		completely unimplemented.  The town itself lies to the south.
 		A placeholder carnival is apparently in town;  you can enter
@@ -122,7 +126,7 @@ midway: CarnivalOutdoor 'The Carnival Midway'
 	west = ticketBooth
 ;
 
-hallOfMirrors: CarnivalRoom 'The Hall of Mirrors'
+hallOfMirrors: CarnivalIndoor 'The Hall of Mirrors'
 	"This is the hall of mirrors.  Srorrim fo llah eht si siht.
 		<.p>
 		The inappropriately-named secret room is just north of here.
@@ -131,7 +135,7 @@ hallOfMirrors: CarnivalRoom 'The Hall of Mirrors'
 	west = midway
 ;
 
-secretRoom: CarnivalRoom 'The Secret Room'
+secretRoom: CarnivalIndoor 'The Secret Room'
 	"This is the secret room in the hall of mirrors, for whatever
 		that's worth. "
 	south = hallOfMirrors

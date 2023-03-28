@@ -7,7 +7,15 @@
 
 #include "routeTable.h"
 
-class RouteTableRouter: RouteTable, PreinitObject
+// Generic router class.
+// A router is a graph of route tables/zones, where the zones are themselves
+// graphs of whatever we're routing (rooms, for example).
+// So if we have a bunch of rooms in a "cave" zone and a bunch of rooms
+// in a "outside" zone, then our router would keep track of the connections
+// between the "cave" rooms and the "outside" rooms.
+class RouteTableRouter: RouteTableNextHopGraph, SimpleGraphDirected,
+	PreinitObject
+
 	// The type of zones we're a router for.
 	routeTableType = nil
 
@@ -16,14 +24,40 @@ class RouteTableRouter: RouteTable, PreinitObject
 
 	execute() {
 		initializeStaticRouteTableZones();
+
+		// We DON'T build our next hop tables here, because
+		// individual instances are going to do additional
+		// preinit stuff that will probably create new zones for
+		// us to keep track of.
+		// IMPORTANT:  ANY INSTANCE NEEDS TO CALL
+		// buildNextHopRouteTables() ITSELF AFTER IT IS DONE ADDING
+		// ZONES.
+		// When in doubt, this should go at the bottom of the
+		// instance's execute() method (which also MUST call
+		// inherited() or call initializeStaticRouteTableZones()
+		// as well).
+		//buildNextHopRouteTables();
+	}
+
+	// Replacement method for
+	// RouteTableNextHopGraph.addNextHopRouteTableVertex() from
+	// routeTableNextHop.t
+	// The default works for "generic" vertices; all of our
+	// vertices are zones, and so we handle them slightly different.
+	addNextHopRouteTableVertex(src, id, dst) {
+		src.setRouteTableNextHop(id, dst);
 	}
 
 	// Find and remember all of the statically-declared zones we're
 	// configured to care about.
 	initializeStaticRouteTableZones() {
-		forEachInstance(RouteTableZone, function(o) {
+		forEachInstance(RouteTable, function(o) {
 			// If there's no zone ID defined on this zone, skip it.
 			if(o.routeTableZoneID == nil)
+				return;
+
+			// Handle zones declared with the +[object] syntax.
+			if(o.initializeRouteTable() == true)
 				return;
 
 			// If we have a defined type and it doesn't match
@@ -32,9 +66,26 @@ class RouteTableRouter: RouteTable, PreinitObject
 				&& (o.routeTableType != routeTableType))
 				return;
 
-			// Remember this zone.
-			_staticRouteTableZones[o.routeTableZoneID] = o;
+			addStaticRouteTableZone(o);
 		});
+	}
+
+	// Add a single statically-declared zone, maybe.
+	addStaticRouteTableZone(z) {
+		if((z == nil) || (!z.ofKind(RouteTable)))
+			return(nil);
+
+		// If the zone is already defined, skip it.
+		if(_staticRouteTableZones[z.routeTableZoneID] != nil)
+			return(nil);
+
+		// Set the zone's type to be the same as the router's type.
+		z.routeTableType = routeTableType;
+
+		// Remember this zone.
+		_staticRouteTableZones[z.routeTableZoneID] = z;
+
+		return(true);
 	}
 
 	// Look up and return a statically-declared zone.  Only used by
@@ -95,6 +146,45 @@ class RouteTableRouter: RouteTable, PreinitObject
 		});
 	}
 
+	// Rebuild the given zone.
+	rebuildZone(id) {
+		local g;
+
+		// Get the zone object.
+		g = getRouteTableZone(id);
+
+		// Clear the zone's next hop tables.
+		clearZoneNextHopTables(id, g);
+
+		// Clear the edges in the zone's graph.
+		clearIntrazoneEdges(id, g);
+
+		// Rebuild all the stuff we just cleared.
+		buildZoneRouteTable(id, g);
+
+		// Clear the bridges--connections between this zone and
+		// other zones.
+		g.clearRouteTableBridges().forEach(function(o) {
+			getRouteTableZone(o).clearRouteTableBridges();
+		});
+
+		// Rebuild bridges.
+		forEachInstance(Room, function(o) { addBridgesToZone(o); });
+	}
+
+	// Create a new zone.  First arg is the zone ID, second arg is the data
+	// to set on the vertex.
+	addRouteTableZone(id, data) {
+		local v;
+
+		if((v = addVertex(id)) == nil)
+			return(nil);
+
+		v.setData(data);
+
+		return(true);
+	}
+
 	// Returns the vertex data for the given zone.  That's the
 	// RouteTable for the zone, which itself is a graph of the vertices
 	// in that zone.
@@ -106,9 +196,22 @@ class RouteTableRouter: RouteTable, PreinitObject
 		return(v.getData());
 	}
 
+	// The "zone path" is the list of zones that have to be
+	// traversed to get from zone id0 to zone id1.
+	getRouteTableZonePath(id0, id1) {
+		local r, v;
+
+		v = getVertex(id0);
+		if((r = v.getRouteTableNextHop(id1)) == nil) {
+			return(dijkstraPath(id0, id1));
+		} else {
+			return([id0, r.id]);
+		}
+	}
+
 	// Get the next hop from the first vertex to the second.
 	getRouteTableNextHop(v0, v1) {
-		local b, i, l, o, v;
+		local b, p, l, o, v;
 
 		_debug('computing next hop from <<v0.routeTableID>>
 			to <<v1.routeTableID>>');
@@ -123,7 +226,7 @@ class RouteTableRouter: RouteTable, PreinitObject
 
 		// Get the path from the zone the source room is in to
 		// the zone the destination room is in.
-		l = dijkstraPath(v0.routeTableZone, v1.routeTableZone);
+		l = getRouteTableZonePath(v0.routeTableZone, v1.routeTableZone);
 		if((l == nil) || (l.length < 2)) {
 			_debug('no path between zones
 				<q><<v0.routeTableZone>></q>
@@ -131,7 +234,7 @@ class RouteTableRouter: RouteTable, PreinitObject
 			return(nil);
 		}
 
-		_debug('next hop zone path = <<toString(l)>>');
+		_debug('next hop zone = <<l[2]>>');
 
 		// Get the source zone.
 		v = getRouteTableZone(v0.routeTableZone);
@@ -142,24 +245,73 @@ class RouteTableRouter: RouteTable, PreinitObject
 		if((b = v.getRouteTableBridge(l[2])) == nil)
 			return(nil);
 
-		// A bridge lookup returns a vector of the source and
-		// destination nodes that connect the zones.  So if
-		// any of the first nodes matches our current room, then
-		// we're already at the threshold of the next zone, and
-		// our next hop is the second node in the bridge.
-		for(i = 1; i <= b.length; i++) {
-			o = b[i];
-			if(o[1] == v0) {
-				_debug('at zone boundary, returning
-					bridge next hop');
-				return(o[2]);
-			}
-		}
+		// If there's only one bridge, we use it.  Otherwise
+		// we check the path length through each bridge and
+		// select the shortest.
+		// In both cases p will contain a single bridge, which
+		// is a two-element array:  first element is the near-side
+		// vertex in the bridge, second element is the far-side
+		// vertex.
+		if(b.length == 1)
+			p = b[1];
+		else
+			p = selectRouteTableBridge(v0, v1, b);
+
+
+		// None of the bridges gave us a valid path.
+		if(p == nil)
+			return(nil);
+
+		// If the near-side bridge vertex is the source vertex,
+		// then the next step is the far-side vertex.
+		if(p[1] == v0)
+			return(p[2]);
 
 		// We DIDN'T match any bridge endpoints, so instead
 		// we path to a near-side bridge endpoint.
 		_debug('pathing to near side of zone bridge');
-		return(getRouteTableNextHop(v0, o[1]));
+		return(getRouteTableNextHop(v0, p[1]));
+	}
+
+	// A bridge lookup always returns a vector of source and
+	// destination nodes that connect the zones (if they're
+	// connected).  So we go through all of the bridges to
+	// see which one has the shortest path to our
+	// destination.
+	selectRouteTableBridge(v0, v1, b) {
+		local len, path0, path1, r, t;
+
+		// Best candidate path so far.
+		r = nil;
+
+		// Shortest path length so far.
+		len = nil;
+
+		// Go through all the bridges.
+		b.forEach(function(o) {
+			// Get the path from the source vertex and
+			// the near-side bridge vertex.
+			if((path0 = findPath(v0, o[1])) == nil)
+				return;
+
+			// Get the path from the far-side bridge vertex
+			// and the destination vertex.
+			if((path1 = findPath(o[2], v1)) == nil)
+				return;
+			
+			// The total length of the path through this bridge.
+			t = path0.length + path1.length;
+
+			// If we don't have a candidate path yet, or the
+			// path through this bridge is the shortest, remember
+			// it.
+			if((len == nil) || (t < len)) {
+				len = t;
+				r = o;
+			}
+		});
+
+		return(r);
 	}
 
 	// Returns the path, if any, between the given two vertices.
@@ -188,23 +340,5 @@ class RouteTableRouter: RouteTable, PreinitObject
 
 		// Return the path.  We only reach here if pathing failed.
 		return(r);
-	}
-
-	// Rebuild the given zone.
-	rebuildZone(id) {
-		local g;
-
-		g = getRouteTableZone(id);
-		clearZoneNextHopTables(id, g);
-		clearIntrazoneEdges(id, g);
-		buildZoneRouteTable(id, g);
-
-		// Clear bridges.
-		g.clearRouteTableBridges().forEach(function(o) {
-			getRouteTableZone(o).clearRouteTableBridges();
-		});
-
-		// Rebuild bridges
-		forEachInstance(Room, function(o) { addBridgesToZone(o); });
 	}
 ;

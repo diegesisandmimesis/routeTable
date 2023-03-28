@@ -27,4 +27,16 @@ class RouteTableZone: RouteTableObject, SimpleGraphVertex
 	// zones, so we can path to THEM even if we can't path to the
 	// requested destination.
 	routeTableStaticRoutes = nil
+
+	// Called by the router.  This is only used if this zone has been
+	// declared via the +[object] syntax under the router.  We
+	// add ourselves to the list of zones the router manages.
+	initializeRouteTableZone() {
+		if(location == nil)
+			return(nil);
+
+		location.addStaticRouteTableZone(self);
+
+		return(true);
+	}
 ;

@@ -1,7 +1,11 @@
 name: routeTable Library
 source: routeTable.t
+source: routeTableNextHop.t
+source: routeTableBridge.t
+source: routeTableIntrazone.t
+source: routeTableObject.t
+source: routeTableVertex.t
 source: routeTableRoom.t
 source: routeTableRouter.t
-source: routeTableZone.t
 source: routeTableLint.t
 source: routeTableDebug.t

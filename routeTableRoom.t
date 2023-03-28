@@ -17,12 +17,21 @@ modify Room
 	routeTableZone = nil
 ;
 
+class RouteTableZoneRoom: SimpleGraphVertex, RouteTableNextHopVertex;
+
 // Room-specific RouteTable class.
 // Each kind of router needs to know how to figure out how vertices are
 // connected, with rooms it's exits, and here's where we do it.
 class RouteTableRoom: RouteTable
-	addIntrazoneEdgesForVertex(k, v, a) {
-		local c, dst, rm;
+	routeTableTestActor = nil
+
+	addIntrazoneEdgesForVertex(k, v) {
+		local a, c, dst, rm;
+
+		// If we have a test actor defined use it.  Otherwise
+		// use the initial player.
+		if((a = routeTableTestActor) == nil)
+			a = gameMain.initialPlayerChar;
 
 		// The data on each vertex in the zone's routing table
 		// is the Room instance for that vertex.
@@ -74,7 +83,7 @@ routeTableRoomRouter: RouteTableRouter
 	// vertex as data.  We DON'T multi-class/mixin both the graph and
 	// vertex stuff onto a single object because that would cause
 	// method/property name collisions.
-	vertexClass = SimpleGraphVertex
+	vertexClass = RouteTableZoneRoom
 
 	routeTableType = roomRouteTable
 
@@ -91,6 +100,8 @@ routeTableRoomRouter: RouteTableRouter
 
 		// Finally compute intrazone next-hop routing tables.
 		buildZoneRouteTables();
+
+		buildNextHopRouteTables();
 	}
 
 	// Add the given Room instance to the zone.
@@ -103,22 +114,12 @@ routeTableRoomRouter: RouteTableRouter
 			rm.routeTableZone = '_defaultZone';
 		
 		// If the zone doesn't exist, create it.
-		if((v = getVertex(rm.routeTableZone)) == nil) {
-			// Each zone is a vertex with a vertex ID equal
-			// to the zone ID.
-			v = addVertex(rm.routeTableZone);
-
-			// Each zone is ALSO a graph of all the rooms in
-			// that zone.  To handle this we just add an empty
-			// route table to every vertex we add.  We DON'T
-			// try to multiclass the vertex and graph together
-			// because that would cause property and method name
-			// collisions.
-			v.setData(new RouteTableRoom());
+		if((g = getRouteTableZone(rm.routeTableZone)) == nil) {
+			if(addRouteTableZone(rm.routeTableZone,
+				new RouteTableRoom()) == nil)
+				return;
+			g = getRouteTableZone(rm.routeTableZone);
 		}
-
-		// Get the route table for the zone.
-		g = v.getData();
 
 		// Generate a unique-ish ID for the vertex for the room
 		// in the zone route table.
