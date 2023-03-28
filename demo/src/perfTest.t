@@ -130,40 +130,7 @@ secretRoom: CarnivalIndoor 'The Secret Room'
 gameMain: GameMainDef
 	initialPlayerChar = me
 
-	// Number of tests to run.
-	iterations = 10000
-
 	newGame() {
-		local d, i, l, n;
-
-		"running <<toString(iterations)>> iterations\n ";
-
-		// Initialize a counter.
-		n = 0;
-
-		// Remember the time.
-		d = new Date();
-
-		// Call findPath() a bunch of times.
-		while(n < iterations) {
-			l = routeTableRoomRouter.findPath(bedroom, secretRoom);
-			if(l) {}
-			n += 1;
-		}
-
-		// Figure out how long it took and report it.
-		i = new BigNumber((new Date() - d) * 86400).roundToDecimal(3);
-		"routeTableRoomRouter.findPath took <<toString(i)>> seconds\n ";
-
-		// Do the same as above, only for roomPathFinder.
-		n = 0;
-		d = new Date();
-		while(n < iterations) {
-			l = roomPathFinder.findPath(me, bedroom, secretRoom);
-			if(l) {}
-			n += 1;
-		}
-		i = new BigNumber((new Date() - d) * 86400).roundToDecimal(3);
-		"roomPathFinder.findPath took <<toString(i)>> seconds\n ";
+		new RouteTablePerfTest(bedroom, secretRoom).runTest();
 	}
 ;

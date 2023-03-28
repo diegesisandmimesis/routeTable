@@ -3,10 +3,10 @@
 -D SIMPLE_GRAPH_DIJKSTRA
 -D ROUTE_TABLE_LINT
 -Fy obj -Fo obj
--o games/perfTest.t3
+-o games/randomTest.t3
 -lib system
 -lib adv3/adv3
 -lib ../../simpleGraph/simpleGraph
 -lib ../routeTable
 -source extensions/pathfind.t
--source src/perfTest.t
+-source src/randomTest.t
