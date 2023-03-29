@@ -23,253 +23,203 @@ PreinitObject
 	}
 ;
 
-// Generic test class.
-class RouteTableTest: RouteTableObject
-	// Time when test was started.
-	_start = nil
-
-	// Minimum interval;  used to avoid divide-by-zero problems.
-	_minInterval = perInstance(new BigNumber(0.000001))
-
-	// Save the time when a test started.
-	startTimer() { _start = new Date(); }
-
-	_max(v0, v1) { return((v0 > v1) ? v0 : v1); }
-
-	// Get the number of seconds since the start of the test.
-	getInterval() {
-		return(_max(
-			((_start != nil)
-				? ((new Date() - _start) * 86400)
-				: nil),
-			_minInterval
-		));
-	}
-
-	runTest() {}
-;
-
-// Performance test.  Compares the performance of the routeTable pathfinding
-// versus the pathfinding provided by roomPathFinder.findPath().
-class RouteTablePerfTest: RouteTableTest
-	_room0 = nil			// source room
-	_room1 = nil			// destination room
-	_iterations = nil		// number of iterations to run
-	_actor = nil			// actor to use for roomPathFinder
-
-	routeTableTime = nil		// how much time routeTable took
-	nativeTime = nil		// how much time roomPathFinder took
-
-	// Args are the two rooms to pathfind between, the number of iterations,
-	// and the actor.
-	construct(rm0, rm1, i?, a?) {
-		_room0 = rm0;
-		_room1 = rm1;
-
-		// Do 10k iterations by default.
-		_iterations = ((i != nil) ? i : 10000);
-
-		// Use gameMain.initialPlayerChar by default.
-		_actor = ((a != nil) ? a : gameMain.initialPlayerChar);
-	}
-
-	runTest() {
-		local i;
-
-		// Clear the counter.
-		i = 0;
-
-		// Start the timer.
-		startTimer();
-
-		// Do the tests.
-		while(i < _iterations) {
-			routeTableRoomRouter.findPath(_room0, _room1);
-			i += 1;
-		}
-
-		// Get the elapsed time.
-		routeTableTime = new BigNumber(getInterval());
-
-		// Now do the same thing for the other method.
-		i = 0;
-		startTimer();
-		while(i < _iterations) {
-			roomPathFinder.findPath(_actor, _room0, _room1);
-			i += 1;
-		}
-		nativeTime = new BigNumber(getInterval());
-
-		// Log the output.
-		output();
-	}
-	output() {
-		local ratio;
-
-		"\nrouteTableRoomRouter.findPath() took
-			<<toString(routeTableTime.roundToDecimal(3))>>
-			seconds\n ";
-		"\nroomPathFinder.findPath() took
-			<<toString(nativeTime.roundToDecimal(3))>>
-			seconds\n ";
-
-		if(routeTableTime > nativeTime) {
-			ratio = routeTableTime / nativeTime;
-			"\nslowdown factor of
-				<<toString(ratio.roundToDecimal(3))>>\n ";
-		} else {
-			ratio = nativeTime / routeTableTime;
-			"\nspeedup factor of
-				<<toString(ratio.roundToDecimal(3))>>\n ";
-		}
-	}
-;
-
-// Class for the rooms in our random maze.
-class RouteTableRandomTestRoom: Room desc = "This is a generic room. ";
-
-// Generates a random square maze and tests pathfinding through it.
-class RouteTableRandomTest: RouteTableTest
-	_mapWidth = nil		// length of a side of the map
-	_mapSize = nil		// total number of rooms in the map
-
-	_iterations = nil	// number of pathfinding passes to run
-
-	_graph = nil		// graph of the rooms.
-
-	construct(n?, i?) {
-		// By default, we build a 10x10 maze.
-		_mapWidth = ((n != nil) ? n : 10);
-
-		// Map size is the square of the width.
-		_mapSize = _mapWidth * _mapWidth;
-
-		_iterations = ((i != nil) ? i : nil);
-	}
-
-	// Preinit method.  Here's where we build the map.
-	preinit() {
-		_createGraph();
-		_buildMap();
-		gameMain.initialPlayerChar.location = _getRoom(1);
-	}
-
-	// Runtime method.  Run the tests.
-	runTest() {
-		new RouteTablePerfTest(_getRoom(1), _getRoom(2),
-			_iterations).runTest();
-	}
-
-	// Create a graph for our map.
-	// For our simple square maze this is overkill, but we might
-	// want to generate different map types using e.g. Prim's
-	// algorithm later.
-	_createGraph() {
-		local i, id, rm, v;
-
-		// Create the empty graph;
-		_graph = new SimpleGraph();
-
-		i = 1;
-		while(i <= _mapSize) {
-			// Rooms are identified by their number
-			id = 'room' + toString(i);
-
-			// Add a vertex for the room.
-			v = _graph.addVertex(id);
-
-			// Create the Room instance.
-			rm = new RouteTableRandomTestRoom();
-			rm.roomName = id;
-
-			// Add the Room instance to the graph vertex.
-			v.setData(rm);
-
-			i += 1;
-		}
-	}
-
-	// Convenience method to retrieve the Room instance by the room
-	// number.
-	_getRoom(i) {
-		return(_graph.getVertex('room' + toString(i)).getData());
-	}
-
-	// Convert the graph into a T3 map.  The rooms already exist,
-	// here we just have to connect them.
-	// We just use a simple binary tree maze generation algorithm:
-	// in every cell, we connect either up or to the right, but
-	// never both.
-	_buildMap() {
-		local i, top;
-
-		top = _mapSize - _mapWidth;
-		// Not a typo, we don't twiddle the last cell.
-		for(i = 1; i < _mapSize; i++) {
-			if((i % _mapWidth) == 0) {
-				// If i % _mapWidth is zero, then we're at the
-				// the east edge, so we have to go north.
-				_connectRooms(i, i + _mapWidth, 'n');
-			} else if(i > top) {
-				// If the room number is > top, we're at the
-				// north edge, so we have to go east.
-				_connectRooms(i, i + 1, 'e');
-			} else {
-				// We're not on either the north or east
-				// edge, so we roll the dice and randomly
-				// go north or east.
-				if(rand(2) == 1) {
-					_connectRooms(i, i + _mapWidth, 'n');
-				} else {
-					_connectRooms(i, i + 1, 'e');
-				}
-			}
-		}
-	}
-
-	// Create the reciprocal connections between the two rooms identified
-	// by their numbers (first two args) in the direction given by the
-	// third arg.  Direction is from the first room to the second.
-	_connectRooms(n0, n1, dir) {
-		local rm0, rm1;
-
-		// Sanity check our arguments.
-		if((rm0 = _getRoom(n0)) == nil) {
-			_error('Failed to get room number <<toString(n0)>>');
-			return;
-		}
-		if((rm1 = _getRoom(n1)) == nil) {
-			_error('Failed to get room number <<toString(n1)>>');
-			return;
-		}
-
-		switch(dir) {
-			case 'n':
-				rm0.north = rm1;
-				rm1.south = rm0;
-				break;
-			case 's':
-				rm0.south = rm1;
-				rm1.north = rm0;
-				break;
-			case 'e':
-				rm0.east = rm1;
-				rm1.west = rm0;
-				break;
-			case 'w':
-				rm0.west = rm1;
-				rm1.east = rm0;
-				break;
-			default:
-				_error('Got bogus direction <<dir>>');
-				break;
-		}
-	}
+class RouteTableLintZoneInfo: object
+	reachable = nil
+	empty = nil
+	orphanList = nil
 ;
 
 // Validator/analyzer for route tables.
 routeTableLint: RouteTableObject
 	svc = 'routeTableLint'
+
+	_showInfo = nil
+	_showWarnings = true
+
+	_ignoreList = nil
+	_routeTableInfo = perInstance(new LookupTable())
+
+	_clearInfo() {
+		_routeTableInfo.keysToList().forEach(function(o) {
+			_routeTableInfo.removeElement(o);
+		});
+	}
+
+	_getZoneInfo(id) {
+		if(_routeTableInfo[id] == nil)
+			_routeTableInfo[id] = new RouteTableLintZoneInfo();
+		
+		return(_routeTableInfo[id]);
+	}
+
+	setIgnoreList(l) { _ignoreList = l; }
+
+	// Returns boolean true if the value is in the ignore list, nil
+	// otherwise.
+	checkIgnored(v) {
+		if(_ignoreList == nil) return(nil);
+		return(_ignoreList.indexOf(v) != nil);
+	}
+
+	runTests() {
+		scanZones();
+		output();
+	}
+
+	output() {
+		_outputGlobal();
+		_outputZones();
+	}
+
+	_getActor() { return(routeTableRoomRouter.getRouteTableActor()); }
+
+	_getStartingRoom() {
+		local a;
+
+		if((a = _getActor()) == nil)
+			return(nil);
+
+		return(a.location);
+	}
+	
+	_getStartingZone() {
+		local rm;
+
+		if((rm = _getStartingRoom()) == nil)
+			return(nil);
+
+		return(rm.routeTableZone);
+	}
+
+	_outputGlobal() {
+		if(_getActor() == nil) {
+			_error('can\'t test reachability: no player defined');
+		} else if(_getStartingRoom() == nil) {
+			_error('can\'t test reachability: no player
+				location defined');
+		} else if(_getStartingZone() == nil) {
+			_error('can\'t test reachability: no zone defined for
+				player location');
+		}
+	}
+
+	_outputZones() {
+		_routeTableInfo.forEachAssoc(function(k, v) {
+			_outputUnreachableZones(k, v);
+			_outputEmptyZones(k, v);
+			_outputOrphans(k, v);
+		});
+	}
+
+	_outputUnreachableZones(k, v) {
+		if(v.reachable == nil)
+			_warning('zone <q><<k>></q>: not reachable');
+	}
+
+	_outputEmptyZones(k, v) {
+		if(v.empty == true)
+			_warning('zone <q><<k>></q>: no vertices');
+	}
+
+	_outputOrphans(k, v) {
+		local l, rm;
+
+		if((l = v.orphanList()) == nil) {
+			_warning('zone <q><<k>></q>:
+				orphan list is nil ');
+			return;
+		}
+		l.forEach(function(o) {
+			rm = o.getData();
+			_warning('zone <q><<k>></q>:
+				vertex <<o.id>> <<((rm != nil)
+				? '<q>' + rm.roomName + '</q>'
+				: '')>> orphaned');
+		});
+	}
+
+	scanZones() {
+		local zoneList, r;
+
+		zoneList = routeTableRoomRouter.getVertices();
+		zoneList.forEachAssoc(function(k, v) {
+			r = _getZoneInfo(k);
+
+			r.reachable = _checkZoneReachable(k, v);
+			r.empty = _checkForEmptyZone(k, v);
+			r.orphanList = _findOrphansInZone(k, v);
+		});
+	}
+
+	_checkZoneReachable(id, zone) {
+		local l, z;
+
+		if((z = _getStartingZone()) == nil)
+			return(nil);
+
+		if(z == id)
+			return(true);
+
+		l = routeTableRoomRouter.getRouteTableZonePath(z, id);
+
+		return(l != nil);
+	}
+
+	_checkForEmptyZone(id, zone) {
+		local l;
+
+		if((zone == nil) || !zone.ofKind(RouteTableZone))
+			return(nil);
+
+		zone = zone.getData();
+
+		if((l = zone.getVertices()) == nil)
+			return(true);
+
+		return(l.length == 0);
+	}
+
+	// Find all the vertices not connected to any other vertex.
+	_findOrphansInZone(id, zone) {
+		local l, r;
+
+		if((zone == nil) || !zone.ofKind(RouteTableZone))
+			return(nil);
+
+		zone = zone.getData();
+
+		if((l = zone.getVertices()) == nil)
+			return(nil);
+
+		r = new Vector();
+
+		l.forEachAssoc(function(k, v) {
+			if(checkIgnored(k) || checkIgnored(v)
+				|| checkIgnored(v.getData()))
+				return;
+			if(v.getDegree() != 0)
+				return;
+			if(_checkOrphanReachability(k, v) == true)
+				return;
+			r.append(v);
+		});
+
+		return(r);
+	}
+
+	_checkOrphanReachability(id, v) {
+		local l;
+
+		if((l = routeTableRoomRouter.findPath(_getStartingRoom(),
+			v.getData())) == nil)
+			return(nil);
+
+		return(l[l.length] == v.getData());
+	}
+
+	_info(msg) { if(_showInfo) aioSay('\nINFO: <<msg>>\n '); }
+	_warning(msg) { if(_showWarnings) aioSay('\nWARNING: <<msg>>\n '); }
+	_error(msg) { aioSay('\nERROR: <<msg>>\n '); }
 ;
 
 #endif // ROUTE_TABLE_LINT

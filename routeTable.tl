@@ -7,5 +7,6 @@ source: routeTableObject.t
 source: routeTableZone.t
 source: routeTableRoom.t
 source: routeTableRouter.t
+source: routeTableTests.t
 source: routeTableLint.t
 source: routeTableDebug.t

@@ -5,6 +5,9 @@
 // Uncomment to enable debugging options.
 //#define __DEBUG_ROUTE_TABLE
 
+// Uncomment to enable test definitions.
+//#define ROUTE_TABLE_TESTS
+
 // Uncomment to enable the route table linter, which is a utility to
 // analyze the route tables in your game.  This should not be enabled
 // in released code

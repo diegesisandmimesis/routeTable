@@ -23,15 +23,19 @@ modify Room
 // Each kind of router needs to know how to figure out how vertices are
 // connected, with rooms it's exits, and here's where we do it.
 class RouteTableRoom: RouteTable
-	routeTableTestActor = nil
+	svc = 'RouteTableRoom'
 
+	getRouteTableActor() {
+		return(routeTableRoomRouter.getRouteTableActor());
+	}
 	addIntrazoneEdgesForVertex(k, v) {
 		local a, c, dst, rm;
 
 		// If we have a test actor defined use it.  Otherwise
 		// use the initial player.
-		if((a = routeTableTestActor) == nil)
-			a = gameMain.initialPlayerChar;
+		//if((a = routeTableTestActor) == nil)
+			//a = gameMain.initialPlayerChar;
+		a = getRouteTableActor();
 
 		// The data on each vertex in the zone's routing table
 		// is the Room instance for that vertex.
@@ -76,6 +80,8 @@ class RouteTableRoom: RouteTable
 
 // Our top-level router for Room instances.
 routeTableRoomRouter: RouteTableRouter
+	svc = 'routeTableRoomRouter'
+
 	// We use the vanilla vertex class for our vertices, even though
 	// every vertex in the zone graph is in fact a graph itself.
 	// SimpleGraphVertex lets us add arbitrary data to each object, so
@@ -86,6 +92,9 @@ routeTableRoomRouter: RouteTableRouter
 	vertexClass = RouteTableZone
 
 	routeTableType = roomRouteTable
+
+	// Actor for reachability testing.
+	routeTableTestActor = nil
 
 	execute() {
 		inherited();
@@ -102,6 +111,12 @@ routeTableRoomRouter: RouteTableRouter
 		buildZoneRouteTables();
 
 		buildNextHopRouteTables();
+	}
+
+	getRouteTableActor() {
+		if(routeTableTestActor != nil)
+			return(routeTableTestActor);
+		return(gameMain.initialPlayerChar);
 	}
 
 	// Add the given Room instance to the zone.
@@ -142,7 +157,8 @@ routeTableRoomRouter: RouteTableRouter
 		local a, c, dst;
 
 		// Use the initial player to test connectors.
-		a = gameMain.initialPlayerChar;
+		//a = gameMain.initialPlayerChar;
+		a = getRouteTableActor();
 
 		// Go through all directions.
 		Direction.allDirections.forEach(function(d) {
