@@ -43,6 +43,23 @@ class RouteTableLintZoneInfo: object
 routeTableLint: RouteTableObject
 	svc = 'routeTableLint'
 
+	// If enabled, logging about subgraphs will include markers at
+	// the start and end of the output of each subgraph.  Example:
+	//
+	//	=====subgraph 1 start====
+	//	zone "foo": subgraph 1 = someVertexID "First Room Name"
+	//	zone "foo": subgraph 1 = someOtherID "Different Room Name"
+	//	=====subgraph 1 end======
+	//	=====subgraph 2 start====
+	//	zone "foo": subgraph 2 = anotherID "Random Room Name"
+	//	zone "foo": subgraph 2 = lastExampleID "I'm out of Room Names"
+	//	=====subgraph 2 end======
+	//
+	// This is just intended to make it easier to visually grep through
+	// the output to identify subgraphs, which are something that need
+	// to be fixed if they exist.
+	useSubgraphSpacers = true
+
 	// Output verbosity flags
 	_showInfo = nil			// by default, no "info" messages
 	_showWarnings = true		// by default, print warnings
@@ -165,7 +182,7 @@ routeTableLint: RouteTableObject
 	// Here we just complain, but the module can fix this via
 	// roomRouter.fixSubgraphs() but that's not part of the linter's remit.
 	_outputSubgraphs(k, v) {
-		local i;
+		local i, rm, z;
 
 		// No subgraphs means an empty zone (which merits a warning,
 		// but not here), and a length of 1 means all vertices are
@@ -180,10 +197,32 @@ routeTableLint: RouteTableObject
 			<<toString(v.subgraphs.length)>> disconnected
 			subgraphs');
 
+		// Get the zone itself.
+		if((z = roomRouter.getZone(k)) == nil) {
+			// This should never happen.
+			_error('silly linter error;  we misplaced the
+				zone <q><<k>></q> during output');
+			return;
+		}
+
 		// Output the vertices in each subgraph
 		for(i = 1; i <= v.subgraphs.length; i++) {
-			_error('zone <q><<k>></q>: subgraph <<toString(i)>> =
-				<<toString(v.subgraphs[i])>>');
+			if(useSubgraphSpacers)
+				_error('=====subgraph <<toString(i)>>
+					start=====');
+			v.subgraphs[i].forEach(function(o) {
+				// Get the underlying room for this vertex.
+				rm = z.getNode(o);
+
+				// Output the zone, subgraph, vertex ID,
+				// and room name.
+				_error('zone <q><<k>></q>:
+					subgraph <<toString(i)>> = <<o>>
+					<q><<rm.roomName>></q>');
+			});
+			if(useSubgraphSpacers)
+				_error('=====subgraph <<toString(i)>>
+					end=======');
 		}
 	}
 
