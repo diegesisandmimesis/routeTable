@@ -18,7 +18,8 @@ modify roomRouter
 		if((z = getZone(routeTableDefaultZoneID)) == nil)
 			return;
 
-		l = z.generateSubgraphs();
+		if((l = z.generateSubgraphs()) == nil)
+			return;
 
 		// If there aren't at least two subgraphs then we don't
 		// have anything to do.

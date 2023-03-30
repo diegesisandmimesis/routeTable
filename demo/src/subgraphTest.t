@@ -54,6 +54,10 @@ foo3: FooRoom 'Foo Room 3' south = foo2;
 // the default zone.  But since they're not connected to each other,
 // there will be pathing problems, even though the entire map is
 // traversable (because XRoom and YRoom are connected through FooRoom).
+// This is fixed by the fixSubgraphs() logic iff the
+// ROUTE_TABLE_NO_SUBGRAPH_FIX is *not* set (which is the default).
+// So by default the test cases below SHOULD work, and re-compiling with
+// -D ROUTE_TABLE_NO_SUBGRAPH_FIX should break them all.
 
 gameMain: GameMainDef
 	initialPlayerChar = me

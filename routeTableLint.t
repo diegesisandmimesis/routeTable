@@ -13,16 +13,25 @@
 
 #ifdef ROUTE_TABLE_LINT
 
-// An anonymous preinit object to add a reminder not to release code compiled
-// with the ROUTE_TABLE_LINT flag.
+// An anonymous preinit/init object to add a reminder not to release code
+// compiled with the ROUTE_TABLE_LINT flag.
+// We do a little preprocessor dance here so that we're only output once at
+// startup for debugging builds, but we're output both at compile time and
+// at startup for non-debugging builds.
+#ifdef __DEBUG
 PreinitObject
+#else // __DEBUG
+PreinitObject, InitObject
+#endif //__DEBUG
 	execute() {
 		aioSay('\n####################\n');
 		aioSay('\nWARNING:  COMPILED WITH THE ROUTE_TABLE_LINT FLAG\n');
+		aioSay('\n          Should not be used for a release\n');
 		aioSay('\n####################\n');
 	}
 ;
 
+// Little data structure for keeping track of the linter's notes.
 class RouteTableLintZoneInfo: object
 	reachable = nil
 	empty = nil
@@ -33,18 +42,26 @@ class RouteTableLintZoneInfo: object
 routeTableLint: RouteTableObject
 	svc = 'routeTableLint'
 
-	_showInfo = nil
-	_showWarnings = true
+	// Output verbosity flags
+	_showInfo = nil			// by default, no "info" messages
+	_showWarnings = true		// by default, print warnings
 
-	_ignoreList = nil
+	_ignoreList = nil		// list of rooms/vertices to not
+					// report on
+
+	// LookupTable that'll hold what we figure out as we go.  This
+	// will be a hash of RouteTableLintZoneInfo instances keyed by
+	// zone ID.
 	_routeTableInfo = perInstance(new LookupTable())
 
+	// Clear everything in our info table.
 	_clearInfo() {
 		_routeTableInfo.keysToList().forEach(function(o) {
 			_routeTableInfo.removeElement(o);
 		});
 	}
 
+	// Get everything we recorded about the given zone.
 	_getZoneInfo(id) {
 		if(_routeTableInfo[id] == nil)
 			_routeTableInfo[id] = new RouteTableLintZoneInfo();
@@ -52,6 +69,7 @@ routeTableLint: RouteTableObject
 		return(_routeTableInfo[id]);
 	}
 
+	// Set the ignore list.
 	setIgnoreList(l) { _ignoreList = l; }
 
 	// Returns boolean true if the value is in the ignore list, nil
@@ -61,18 +79,35 @@ routeTableLint: RouteTableObject
 		return(_ignoreList.indexOf(v) != nil);
 	}
 
+	// General entry point.  We run all of our tests.
 	runTests() {
+		// Collect information.
 		scanZones();
+
+		// Report on it.
 		output();
 	}
 
+	// General output method.  Logs everything we know about.
 	output() {
+		// General stuff not specific to a single zone.
 		_outputGlobal();
+
+		// Stuff specific to individual zones.
 		_outputZones();
 	}
 
+	// Figure out what actor to use for reachability testing.  We
+	// just glom onto the roomRouter's logic for this.
 	_getActor() { return(roomRouter.getRouteTableActor()); }
 
+	// Figure out what the starting room, if any, is.  This is used
+	// for reachability testing--we assume that wherever the player
+	// starts out wants to be connected to everything else.
+	// This isn't universally true (the game can have multiple settings
+	// that the player gets teleported between during chapter breaks,
+	// for example) but we've got to compute reachability FROM somewhere,
+	// so this is what we do.
 	_getStartingRoom() {
 		local a;
 
@@ -82,6 +117,7 @@ routeTableLint: RouteTableObject
 		return(a.location);
 	}
 	
+	// Returns the zone ID of the the player's starting location.
 	_getStartingZone() {
 		local rm;
 
@@ -91,6 +127,8 @@ routeTableLint: RouteTableObject
 		return(rm.routeTableZone);
 	}
 
+	// General observations.  This is for stuff not specific to individual
+	// zones.
 	_outputGlobal() {
 		if(_getActor() == nil) {
 			_error('can\'t test reachability: no player defined');
@@ -103,24 +141,38 @@ routeTableLint: RouteTableObject
 		}
 	}
 
+	// Go through the zone list in the info table and output everything
+	// we noticed about each zone.
 	_outputZones() {
 		_routeTableInfo.forEachAssoc(function(k, v) {
-			_outputUnreachableZones(k, v);
-			_outputEmptyZones(k, v);
-			_outputOrphans(k, v);
+			_outputZone(k, v);
 		});
 	}
 
+	// Output info on a single zone.  k is the zone ID, v is the
+	// zone's entry in the info table.
+	_outputZone(k, v) {
+		_outputUnreachableZones(k, v);
+		_outputEmptyZones(k, v);
+		_outputOrphans(k, v);
+	}
+
+	// Complain if we can't reach this zone from the starting location
 	_outputUnreachableZones(k, v) {
 		if(v.reachable == nil)
 			_warning('zone <q><<k>></q>: not reachable');
 	}
 
+	// Complain if the zone doesn't contain anything.
 	_outputEmptyZones(k, v) {
 		if(v.empty == true)
 			_warning('zone <q><<k>></q>: no vertices');
 	}
 
+	// Report "orphans":  rooms that aren't connected to anything.
+	// This is a warning and not an error because it might be intentional:
+	// there might be a jail cell that the player enters and exits only
+	// via teleportation.
 	_outputOrphans(k, v) {
 		local l, rm;
 
@@ -138,18 +190,27 @@ routeTableLint: RouteTableObject
 		});
 	}
 
+	// Main info-gathering loop.
 	scanZones() {
 		local r, z;
 
+		// Iterate through every vertex in the room router's
+		// main route table.  This will be a list of zone IDs.
 		roomRouter.vertexIDList().forEach(function(zID) {
+			// Get the zone info entry for this zone.
 			r = _getZoneInfo(zID);
+
+			// Get the zone itself
 			z = roomRouter.getZone(zID);
+
+			// Update the various info properties.
 			r.reachable = _checkZoneReachable(zID, z);
 			r.empty = _checkForEmptyZone(zID, z);
 			r.orphanList = _findOrphansInZone(zID, z);
 		});
 	}
 
+	// See if the given zone is reachable from the starting zone.
 	_checkZoneReachable(id, zone) {
 		local l, z;
 
@@ -159,11 +220,19 @@ routeTableLint: RouteTableObject
 		if(z == id)
 			return(true);
 
+		// The "zone path" is just the list of zones you have to
+		// go through in order to get from a source zone to a
+		// destination zone.  This ISN'T a list of the individual rooms
+		// that such a trip would involve.
 		l = roomRouter.getZonePath(z, id);
 
 		return(l != nil);
 	}
 
+	// Check the total number of vertices in the zone.  We only care
+	// if the count is zero.  This shouldn't happen in general (because
+	// we generate the zone list by looking at the room declarations),
+	// but it might if we got fancy tweaking things "by hand".
 	_checkForEmptyZone(id, zone) {
 		local l;
 
@@ -202,6 +271,12 @@ routeTableLint: RouteTableObject
 		return(r);
 	}
 
+	// Double-check an "orphan".  We do this because the basic check
+	// above relies on edges in the graph of the zone.  This alone
+	// would return a false positive for a zone containing a single
+	// room that's connected to a room in another zone.
+	// So here we check to see if the orphan can be reached from
+	// the start room.
 	_checkOrphanReachability(id, v) {
 		local l;
 
@@ -212,6 +287,8 @@ routeTableLint: RouteTableObject
 		return(l[l.length] == v.getData());
 	}
 
+	// Logging methods for various severity levels.  Errors are always
+	// output, everything else can be toggled.
 	_info(msg) { if(_showInfo) aioSay('\nINFO: <<msg>>\n '); }
 	_warning(msg) { if(_showWarnings) aioSay('\nWARNING: <<msg>>\n '); }
 	_error(msg) { aioSay('\nERROR: <<msg>>\n '); }

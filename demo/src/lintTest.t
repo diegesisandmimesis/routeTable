@@ -26,7 +26,9 @@ versionInfo: GameID;
 
 class FooRoom: Room desc = "This is a foo room. " routeTableZone = 'foo';
 class BarRoom: Room desc = "This is a bar room. " routeTableZone = 'bar';
-class BazRoom: Room desc = "This is a baz room. " routeTableZOne = 'baz';
+class BazRoom: Room desc = "This is a baz room. " routeTableZone = 'baz';
+class QuuxRoom: Room desc = "This is a quux room. " routeTableZone = 'quux';
+class ConnRoom: Room desc = "This is a conn room. " routeTableZone = 'conn';
 
 startRoom: Room 'Start Room'
 	"This is the starting room. "
@@ -52,9 +54,25 @@ foo1: FooRoom 'Foo 1' north = foo2 south = startRoom;
 foo2: FooRoom 'Foo 2' north = foo3 south = foo1;
 foo3: FooRoom 'Foo 3' north = bar1 south = foo2;
 
+// Another clique of connected rooms.
 bar1: BarRoom 'Bar 1' north = bar2 south = foo3;
 bar2: BarRoom 'Bar 2' north = bar3 south = bar1;
 bar3: BarRoom 'Bar 3' south = bar2;
+
+// This is a busted zone:  quux contains two disconnected subgroups,
+// bisected by the conn zone.
+quux1: QuuxRoom 'Quux 1' north = quux2 south = bar3;
+quux2: QuuxRoom 'Quux 2' north = quux3 south = quux1 east = conn2;
+quux3: QuuxRoom 'Quux 3' south = quux2;
+
+quux4: QuuxRoom 'Quux 4' north = quux5;
+quux5: QuuxRoom 'Quux 5' north = quux6 south = quux4 west = conn2;
+quux6: QuuxRoom 'Quux 6' south = quux5;
+
+conn1: ConnRoom 'Conn 1' north = conn2;
+conn2: ConnRoom 'Conn 2' north = conn3 south = conn1
+	east = quux5 west = quux2;
+conn3: ConnRoom 'Conn 3' south = conn2;
 	
 gameMain: GameMainDef
 	initialPlayerChar = me
