@@ -133,6 +133,21 @@ class RouteTable: RouteTableObject, SimpleGraphDirected, PreinitObject
 		return(inherited(id));
 	}
 
+	// Clear all the zones.
+	clearZones() {
+		local z;
+
+		// Go through all our vertices...
+		vertexIDList().forEach(function(k) {
+			// ...telling each zone to clear itself...
+			if((z = getZone(k)) != nil)
+				z.clear();
+
+			// ...and then removing the vertex.
+			removeVertex(k);
+		});
+	}
+
 	rebuildZone(id0) {
 		local z;
 

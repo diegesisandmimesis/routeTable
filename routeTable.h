@@ -13,6 +13,10 @@
 // in released code
 //#define ROUTE_TABLE_LINT
 
+// Uncomment to prevent the module from automagically fixing
+// subgraph problems in the default zone
+//#define ROUTE_TABLE_NO_SUBGRAPH_FIX
+
 // Dependency checking.
 #include "simpleGraph.h"
 #ifndef SIMPLE_GRAPH_H

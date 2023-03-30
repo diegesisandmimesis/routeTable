@@ -33,8 +33,10 @@ roomRouter: RouteTable
 		forEachInstance(Room, function(o) { addRoomToZone(o); });
 		forEachInstance(Room, function(o) { addBridgeToZone(o); });
 		forEachInstance(Room, function(o) { addRoomConnections(o); });
-		
+
 		generateNextHopCaches();
+
+		fixSubgraphs();
 	}
 
 	getRouteTableActor() {
@@ -144,6 +146,9 @@ roomRouter: RouteTable
 
 		return(true);
 	}
+
+	// Stub.  Method lives in routeTableSubgraph.t
+	fixSubgraphs() {}
 
 	// Pure semantic sugar.
 	findPath(v0, v1) { return(findPathWithBridges(v0, v1)); }

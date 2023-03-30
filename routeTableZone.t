@@ -107,6 +107,9 @@ class RouteTableZone: RouteTableObject, SimpleGraphDirected
 		return(true);
 	}
 
+	// Add a node.  A "node" is just the data content of a vertex.
+	// So if we're a zone in a route table for rooms, the node
+	// will be a Room instance.
 	addNode(id0, data?) {
 		local v;
 
@@ -125,6 +128,9 @@ class RouteTableZone: RouteTableObject, SimpleGraphDirected
 		return(v);
 	}
 
+	// Get a node.  Here a "node" is just the data set on the
+	// named vertex.  So if we're a zone in a route table for rooms,
+	// then the node will be a Room instance.
 	getNode(id0) {
 		local v;
 
@@ -133,10 +139,13 @@ class RouteTableZone: RouteTableObject, SimpleGraphDirected
 		return(v.getData());
 	}
 
-	addConnection(id0, id1) {
-		return(addEdge(id0, id1, true));
-	}
+	// Semantic sugar.  Add an edge.
+	addConnection(id0, id1) { return(addEdge(id0, id1, true)); }
 
+	// Remove all the vertices in this zone.
+	clear() { vertexIDList().forEach(function(k) { removeVertex(k); }); }
+
+	// Rebuild the zone's next hop caches.
 	rebuild() {
 		clearNextHopCache();
 		generateNextHopCache();
