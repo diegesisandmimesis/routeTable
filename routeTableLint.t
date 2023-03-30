@@ -124,7 +124,7 @@ routeTableLint: RouteTableObject
 	_outputOrphans(k, v) {
 		local l, rm;
 
-		if((l = v.orphanList()) == nil) {
+		if((l = v.orphanList) == nil) {
 			_warning('zone <q><<k>></q>:
 				orphan list is nil ');
 			return;
@@ -139,15 +139,14 @@ routeTableLint: RouteTableObject
 	}
 
 	scanZones() {
-		local zoneList, r;
+		local r, z;
 
-		zoneList = roomRouter.getVertices();
-		zoneList.forEachAssoc(function(k, v) {
-			r = _getZoneInfo(k);
-
-			r.reachable = _checkZoneReachable(k, v);
-			r.empty = _checkForEmptyZone(k, v);
-			r.orphanList = _findOrphansInZone(k, v);
+		roomRouter.vertexIDList().forEach(function(zID) {
+			r = _getZoneInfo(zID);
+			z = roomRouter.getZone(zID);
+			r.reachable = _checkZoneReachable(zID, z);
+			r.empty = _checkForEmptyZone(zID, z);
+			r.orphanList = _findOrphansInZone(zID, z);
 		});
 	}
 
@@ -171,8 +170,6 @@ routeTableLint: RouteTableObject
 		if((zone == nil) || !zone.ofKind(RouteTableZone))
 			return(nil);
 
-		zone = zone.getData();
-
 		if((l = zone.getVertices()) == nil)
 			return(true);
 
@@ -185,8 +182,6 @@ routeTableLint: RouteTableObject
 
 		if((zone == nil) || !zone.ofKind(RouteTableZone))
 			return(nil);
-
-		zone = zone.getData();
 
 		if((l = zone.getVertices()) == nil)
 			return(nil);

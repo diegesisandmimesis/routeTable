@@ -34,7 +34,7 @@ randomTest: PreinitObject
 	test = nil
 
 	execute() {
-		test = new RouteTableRandomTest();
+		test = new RouteTableRandomTest(nil, 1000);
 		test.preinit();
 	}
 ;
