@@ -36,6 +36,7 @@ class RouteTableLintZoneInfo: object
 	reachable = nil
 	empty = nil
 	orphanList = nil
+	subgraphs = nil
 ;
 
 // Validator/analyzer for route tables.
@@ -152,9 +153,38 @@ routeTableLint: RouteTableObject
 	// Output info on a single zone.  k is the zone ID, v is the
 	// zone's entry in the info table.
 	_outputZone(k, v) {
+		_outputSubgraphs(k, v);
 		_outputUnreachableZones(k, v);
 		_outputEmptyZones(k, v);
 		_outputOrphans(k, v);
+	}
+
+	// Output info about subgraphs.  In order for pathfinding to
+	// work all the vertices in a zone need to be contiguous, so if
+	// there are disconnected subgraphs there be troubles ahead.
+	// Here we just complain, but the module can fix this via
+	// roomRouter.fixSubgraphs() but that's not part of the linter's remit.
+	_outputSubgraphs(k, v) {
+		local i;
+
+		// No subgraphs means an empty zone (which merits a warning,
+		// but not here), and a length of 1 means all vertices are
+		// contiguous (which is what we want).  If either of those
+		// applies, we're done here.
+		if((v.subgraphs == nil) || (v.subgraphs.length < 2))
+			return;
+
+		// Multiple disconnected subgraphs breaks pathfinding, so
+		// this is an error, not a warning.
+		_error('zone <q><<k>></q>: contains
+			<<toString(v.subgraphs.length)>> disconnected
+			subgraphs');
+
+		// Output the vertices in each subgraph
+		for(i = 1; i <= v.subgraphs.length; i++) {
+			_error('zone <q><<k>></q>: subgraph <<toString(i)>> =
+				<<toString(v.subgraphs[i])>>');
+		}
 	}
 
 	// Complain if we can't reach this zone from the starting location
@@ -207,6 +237,7 @@ routeTableLint: RouteTableObject
 			r.reachable = _checkZoneReachable(zID, z);
 			r.empty = _checkForEmptyZone(zID, z);
 			r.orphanList = _findOrphansInZone(zID, z);
+			r.subgraphs = _findSubgraphsInZone(zID, z);
 		});
 	}
 
@@ -285,6 +316,32 @@ routeTableLint: RouteTableObject
 			return(nil);
 
 		return(l[l.length] == v.getData());
+	}
+
+	_findSubgraphsInZone(id, zone) {
+		local l;
+
+		// Sanity check the zone argument.
+		if((zone == nil) || !zone.ofKind(RouteTableZone))
+			return(nil);
+
+		// Make sure there's at least one subgraphs.  If not,
+		// the zone is empty, but that's not our problem.
+		if((l = zone.generateSubgraphs()) == nil)
+			return(nil);
+
+		// If there's exactly one subgraphs, then we're cool.
+		// That just means that all the vertices in the zone are
+		// contiguous, which is what we need.
+		if(l.length < 2)
+			return(nil);
+
+		// Here our troubles begin.  We have multiple subgraphs,
+		// which means pathfinding in the zone will be broken.
+		// All we do at the moment is return the subgraphs list,
+		// and it'll be up to the reporting stuff to figure it out.
+
+		return(l);
 	}
 
 	// Logging methods for various severity levels.  Errors are always

@@ -27,6 +27,27 @@
 #error "should be in /home/user/tads/simpleGraph ."
 #endif // SIMPLE_GRAPH_H
 
+#ifndef SIMPLE_GRAPH_DIJKSTRA
+#error "You have to add -D SIMPLE_GRAPH_DIJKSTRA to the makefile."
+#error "This can't be done in a header file because it needs to be enabled"
+#error "when compiling one of the dependencies, which won't see a header"
+#error "file elsewhere in the project."
+#endif // SIMPLE_GRAPH_DIJKSTRA
+
+#ifndef SIMPLE_GRAPH_NEXT_HOP_CACHE
+#error "You have to add -D SIMPLE_GRAPH_NEXT_HOP_CACHE to the makefile."
+#error "This can't be done in a header file because it needs to be enabled"
+#error "when compiling one of the dependencies, which won't see a header"
+#error "file elsewhere in the project."
+#endif // SIMPLE_GRAPH_NEXT_HOP_CACHE
+
+#ifndef SIMPLE_GRAPH_SUBGRAPH
+#error "You have to add -D SIMPLE_GRAPH_SUBGRAPH to the makefile."
+#error "This can't be done in a header file because it needs to be enabled"
+#error "when compiling one of the dependencies, which won't see a header"
+#error "file elsewhere in the project."
+#endif // SIMPLE_GRAPH_SUBGRAPH
+
 RouteTableZone template 'routeTableZoneID';
 
 // Do not comment this out.  It's used for dependency checking.
