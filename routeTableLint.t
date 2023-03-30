@@ -71,7 +71,7 @@ routeTableLint: RouteTableObject
 		_outputZones();
 	}
 
-	_getActor() { return(routeTableRoomRouter.getRouteTableActor()); }
+	_getActor() { return(roomRouter.getRouteTableActor()); }
 
 	_getStartingRoom() {
 		local a;
@@ -141,7 +141,7 @@ routeTableLint: RouteTableObject
 	scanZones() {
 		local zoneList, r;
 
-		zoneList = routeTableRoomRouter.getVertices();
+		zoneList = roomRouter.getVertices();
 		zoneList.forEachAssoc(function(k, v) {
 			r = _getZoneInfo(k);
 
@@ -160,7 +160,7 @@ routeTableLint: RouteTableObject
 		if(z == id)
 			return(true);
 
-		l = routeTableRoomRouter.getRouteTableZonePath(z, id);
+		l = roomRouter.getZonePath(z, id);
 
 		return(l != nil);
 	}
@@ -210,7 +210,7 @@ routeTableLint: RouteTableObject
 	_checkOrphanReachability(id, v) {
 		local l;
 
-		if((l = routeTableRoomRouter.findPath(_getStartingRoom(),
+		if((l = roomRouter.findPath(_getStartingRoom(),
 			v.getData())) == nil)
 			return(nil);
 

@@ -26,7 +26,7 @@
 // No version info; we're never interactive.
 versionInfo: GameID;
 
-modify routeTableRoomRouter
+modify roomRouter
 	execBeforeMe = [ randomTest ]
 ;
 

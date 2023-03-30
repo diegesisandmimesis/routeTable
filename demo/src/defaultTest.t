@@ -19,6 +19,8 @@
 #include <adv3.h>
 #include <en_us.h>
 
+#include "routeTable.h"
+
 // No version info; we're never interactive.
 versionInfo: GameID;
 
@@ -153,7 +155,7 @@ gameMain: GameMainDef
 
 		"Path from <q><<rm0.name>></q> to
 			<q><<rm1.name>></q>\n ";
-		l = routeTableRoomRouter.findPath(rm0, rm1);
+		l = roomRouter.findPath(rm0, rm1);
 		l.forEach(function(o) {
 			"\t<<o.routeTableID>>:  <<o.name>>\n ";
 		});

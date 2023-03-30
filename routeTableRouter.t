@@ -7,6 +7,8 @@
 
 #include "routeTable.h"
 
+/*
+
 // Generic router class.
 // A router is a graph of route tables/zones, where the zones are themselves
 // graphs of whatever we're routing (rooms, for example).
@@ -357,3 +359,4 @@ class RouteTableRouter: RouteTableNextHopGraph, SimpleGraphDirected,
 		return(r);
 	}
 ;
+*/

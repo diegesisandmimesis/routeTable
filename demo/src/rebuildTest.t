@@ -24,7 +24,7 @@
 // No version info; we're never interactive.
 versionInfo: GameID;
 
-modify routeTableRoomRouter;
+modify roomRouter;
 // Illustration of the static zone declaration syntax.  In general
 // you don't have to bother with this, but we want to declare a static
 // route.
@@ -40,7 +40,7 @@ modify routeTableRoomRouter;
 	// key in the lookup table declared below), then we'll try pathing
 	// to the "hallway" location.
 	// For more information, check routeTableZone.t
-	routeTableStaticRoutes = static [
+	routeTableStaticRoute = static [
 		'town' -> hallway
 	]
 ;
@@ -172,7 +172,12 @@ gameMain: GameMainDef
 		_logPath(bedroom, secretRoom);
 
 		frontDoorHouse.stuck = true;
-		routeTableRoomRouter.rebuildZone('house');
+		roomRouter.rebuildZone('house');
+
+		_logPath(bedroom, secretRoom);
+
+		frontDoorHouse.stuck = nil;
+		roomRouter.rebuildZone('house');
 
 		_logPath(bedroom, secretRoom);
 	}
@@ -183,7 +188,7 @@ gameMain: GameMainDef
 
 		"Path from <q><<rm0.name>></q> to
 			<q><<rm1.name>></q>\n ";
-		l = routeTableRoomRouter.findPath(rm0, rm1);
+		l = roomRouter.findPath(rm0, rm1);
 		l.forEach(function(o) {
 			"\t<<o.routeTableID>>:  <<o.name>>\n ";
 		});

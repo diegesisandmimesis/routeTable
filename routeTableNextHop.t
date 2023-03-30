@@ -7,6 +7,7 @@
 
 #include "routeTable.h"
 
+/*
 // Mixin class containing next hop methods for vertices.
 class RouteTableNextHopVertex: RouteTableObject
 	// LookupTable for the next hop(s) for this vertex, for
@@ -67,3 +68,4 @@ class RouteTableNextHopGraph: RouteTableObject
 		src.setRouteTableNextHop(id, dst.getData());
 	}
 ;
+*/

@@ -72,7 +72,7 @@ class RouteTablePerfTest: RouteTableTest
 
 		// Do the tests.
 		while(i < _iterations) {
-			routeTableRoomRouter.findPath(_room0, _room1);
+			roomRouter.findPath(_room0, _room1);
 			i += 1;
 		}
 

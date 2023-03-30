@@ -3,9 +3,9 @@
 -D SIMPLE_GRAPH_DIJKSTRA
 -D SIMPLE_GRAPH_NEXT_HOP_CACHE
 -Fy obj -Fo obj
--o games/defaultTest.t3
+-o games/genericTest.t3
 -lib system
 -lib adv3/adv3
 -lib ../../simpleGraph/simpleGraph
 -lib ../routeTable
--source src/defaultTest.t
+-source src/genericTest.t

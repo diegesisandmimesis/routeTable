@@ -10,6 +10,8 @@
 
 #include "routeTable.h"
 
+/*
+
 modify RouteTable
 	// LookupTable for the bridge(s) between this zone and other zones.
 	_routeTableBridge = perInstance(new LookupTable())
@@ -54,3 +56,4 @@ modify RouteTable
 		return(r);
 	}
 ;
+*/

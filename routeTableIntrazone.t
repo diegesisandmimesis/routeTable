@@ -10,10 +10,8 @@
 
 #include "routeTable.h"
 
+/*
 modify RouteTable
-	// Actor instance to use when testing connectivity.
-	routeTableTestActor = nil
-
 	// Add all the edges between vertices in this zone.
 	addIntrazoneEdges() {
 		// Go through all of the tables's vertices.
@@ -27,3 +25,4 @@ modify RouteTable
 	// Stub method, doesn't do anything.
 	addIntrazoneEdgesForVertex(k, v) {}
 ;
+*/

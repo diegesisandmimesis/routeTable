@@ -17,38 +17,87 @@ modify Room
 	routeTableZone = nil
 ;
 
-//class RouteTableZoneRoom: RouteTableZone;
+roomRouter: RouteTable
+	svc = 'roomRouter'
 
-// Room-specific RouteTable class.
-// Each kind of router needs to know how to figure out how vertices are
-// connected, with rooms it's exits, and here's where we do it.
-class RouteTableRoom: RouteTable
-	svc = 'RouteTableRoom'
+	routeTableType = roomRouteTable
+
+	routeTableDefaultZoneID = '_defaultZone'
+	nodeClass = Room
+
+	routeTableActor = nil
+
+	execute() {
+		inherited();
+
+		forEachInstance(Room, function(o) { addRoomToZone(o); });
+		forEachInstance(Room, function(o) { addBridgeToZone(o); });
+		forEachInstance(Room, function(o) { addRoomConnections(o); });
+		
+		generateNextHopCaches();
+	}
 
 	getRouteTableActor() {
-		return(routeTableRoomRouter.getRouteTableActor());
+		if(routeTableActor != nil)
+			return(routeTableActor);
+
+		return(gameMain.initialPlayerChar);
 	}
-	addIntrazoneEdgesForVertex(k, v) {
-		local a, c, dst, rm;
 
-		// If we have a test actor defined use it.  Otherwise
-		// use the initial player.
-		//if((a = routeTableTestActor) == nil)
-			//a = gameMain.initialPlayerChar;
-		a = getRouteTableActor();
+	addRoomToZone(rm) {
+		local rmID, z;
 
-		// The data on each vertex in the zone's routing table
-		// is the Room instance for that vertex.
-		rm = v.getData();
+		if(rm.routeTableZone == nil)
+			rm.routeTableZone = routeTableDefaultZoneID;
 
-		// We should never have no data for a vertex, but we
-		// check anyway.
-		if(rm == nil) {
-			_debug('no room data for <<k>> in zone <<id>>');
+		if((z = getZone(rm.routeTableZone)) == nil) {
+			if((z = addZone(rm.routeTableZone)) == nil)
+				return;
+		}
+
+		if(rm.routeTableID != nil)
+			rmID = rm.routeTableID;
+		else
+			rmID = rm.routeTableZone + '-' + toString(z.order());
+
+		if(z.addNode(rmID, rm) == nil) {
+			_debug('failed to add room <<rmID>> to zone
+				<<rm.routeTableZone>>');
 			return;
 		}
 
-		// Now we go through all the directions.
+		_debug('added room <<rmID>> to zone <<rm.routeTableZone>>');
+
+		rm.routeTableID = rmID;
+	}
+
+	addBridgeToZone(rm) {
+		local a, c, dst;
+
+		a = getRouteTableActor();
+
+		Direction.allDirections.forEach(function(d) {
+			if((c = rm.getTravelConnector(d, a)) == nil)
+				return;
+
+			if((dst = c.getDestination(rm, a)) == nil)
+				return;
+
+			if(rm.routeTableZone != dst.routeTableZone) {
+				connectZones(rm.routeTableZone,
+					dst.routeTableZone, rm, dst);
+			}
+		});
+	}
+
+	addRoomConnections(rm) {
+		local a, c, dst, z;
+
+		a = getRouteTableActor();
+
+		if((z = getZone(rm.routeTableZone)) == nil)
+			return;
+
 		Direction.allDirections.forEach(function(d) {
 			// Check to see if there's a connector from
 			// this room in the given direction, for the
@@ -73,144 +122,31 @@ class RouteTableRoom: RouteTable
 				return;
 
 			// Add the edge.
-			addEdge(rm.routeTableID, dst.routeTableID, true);
-		});
-	}
-;
-
-// Our top-level router for Room instances.
-routeTableRoomRouter: RouteTableRouter
-	svc = 'routeTableRoomRouter'
-
-	// We use the vanilla vertex class for our vertices, even though
-	// every vertex in the zone graph is in fact a graph itself.
-	// SimpleGraphVertex lets us add arbitrary data to each object, so
-	// what we do is create a SimpleGraph instance and add it to each
-	// vertex as data.  We DON'T multi-class/mixin both the graph and
-	// vertex stuff onto a single object because that would cause
-	// method/property name collisions.
-	vertexClass = RouteTableZone
-
-	routeTableType = roomRouteTable
-
-	// Actor for reachability testing.
-	routeTableTestActor = nil
-
-	execute() {
-		inherited();
-
-		// Go through every room and try to figure out what zones to
-		// add.
-		forEachInstance(Room, function(o) { addRoomToZone(o); });
-
-		// Then go through every room and figure which ones connect
-		// different zones.
-		forEachInstance(Room, function(o) { addBridgesToZone(o); });
-
-		// Finally compute intrazone next-hop routing tables.
-		buildZoneRouteTables();
-
-		buildNextHopRouteTables();
-	}
-
-	getRouteTableActor() {
-		if(routeTableTestActor != nil)
-			return(routeTableTestActor);
-		return(gameMain.initialPlayerChar);
-	}
-
-	// Add the given Room instance to the zone.
-	addRoomToZone(rm) {
-		local g, id, v;
-
-		// If there's no zone explicitly declared on the room,
-		// stuff it in the catchall default zone.
-		if(rm.routeTableZone == nil)
-			rm.routeTableZone = '_defaultZone';
-		
-		// If the zone doesn't exist, create it.
-		if((g = getRouteTableZone(rm.routeTableZone)) == nil) {
-			if(addRouteTableZone(rm.routeTableZone,
-				new RouteTableRoom()) == nil)
-				return;
-			g = getRouteTableZone(rm.routeTableZone);
-		}
-
-		// Generate a unique-ish ID for the vertex for the room
-		// in the zone route table.
-		id = rm.routeTableZone + '-' + toString(g.order);
-
-		// Add a vertex for the room to the zone route table and
-		// associate the Room instance with the it.
-		if((v = g.addVertex(id)) != nil) {
-			// Add the Room instance to the vertex as data.
-			v.setData(rm);
-
-			// Add the vertex ID to the Room instance.
-			rm.routeTableID = id;
-		}
-	}
-
-	// See if this room connects to a room in a different zone and,
-	// if so, add it as a bridge.
-	addBridgesToZone(rm) {
-		local a, c, dst;
-
-		// Use the initial player to test connectors.
-		//a = gameMain.initialPlayerChar;
-		a = getRouteTableActor();
-
-		// Go through all directions.
-		Direction.allDirections.forEach(function(d) {
-			// See if the room has a travel connector for this
-			// direction and actor.
-			if((c = rm.getTravelConnector(d, a)) == nil)
-				return;
-
-			// See if the connector has a destination for an actor
-			// coming from this room.
-			if((dst = c.getDestination(rm, a)) == nil)
-				return;
-
-			// If the destination isn't in the same zone as this
-			// room, we have a bridge.  Add it.
-			if(rm.routeTableZone != dst.routeTableZone)
-				addBridge(rm, dst);
+			z.addConnection(rm.routeTableID, dst.routeTableID);
 		});
 	}
 
-	// Add a bridge between zones.
-	// This involves adding an edge in our graph and separately
-	// making a note of which object is the bridge.  This involves some
-	// duplication of data (we could just iterate through the vertices
-	// looking for the one that connects any two zones) but creating a
-	// table makes lookups way less expensive.
-	addBridge(src, dst) {
-		local v;
+	rebuildZone(id0) {
+		local rm, z;
 
-		// We only care if the source and destination are in different
-		// zones.
-		if(src.routeTableZone == dst.routeTableZone)
+		if(inherited(id0) == nil)
 			return(nil);
 
-		_debug('adding bridge from <<src.routeTableZone>> to
-			<<dst.routeTableZone>>');
+		if((z = getZone(id0)) == nil)
+			return(nil);
 
-		// Add an edge to our graph (the zone routing table)
-		// indicating a connection from the source vertex to the
-		// destination verted.  The third argument tells the graph
-		// logic not to create any new vertices if they don't already
-		// exist.
-		addEdge(src.routeTableZone, dst.routeTableZone, true);
-
-		// Get the routing table for the source vertex's zone.
-		v = getRouteTableZone(src.routeTableZone);
-
-		// Add the bridge.
-		v.addRouteTableBridge(dst.routeTableZone, src, dst);
+		z.vertexList().forEach(function(o) {
+			rm = o.getData();
+			addBridgeToZone(rm);
+			addRoomConnections(rm);
+			
+		});
 
 		return(true);
 	}
+
+	// Pure semantic sugar.
+	findPath(v0, v1) { return(findPathWithBridges(v0, v1)); }
 ;
 
 #endif // ROUTE_TABLE_NO_ROOMS
