@@ -228,8 +228,21 @@ routeTableLint: RouteTableObject
 
 	// Complain if we can't reach this zone from the starting location
 	_outputUnreachableZones(k, v) {
-		if(v.reachable == nil)
-			_warning('zone <q><<k>></q>: not reachable');
+		local rm, z;
+
+		if(v.reachable == true)
+			return;
+
+		_warning('zone <q><<k>></q>: unreachable');
+
+		if((z = roomRouter.getZone(k)) == nil)
+			return;
+
+		z.vertexIDList().forEach(function(o) {
+			rm = z.getNode(o);
+			_warning('zone <q><<k>></q>: unreachable room <<o>>
+				<q><<rm.roomName>></q>');
+		});
 	}
 
 	// Complain if the zone doesn't contain anything.
@@ -294,9 +307,10 @@ routeTableLint: RouteTableObject
 		// go through in order to get from a source zone to a
 		// destination zone.  This ISN'T a list of the individual rooms
 		// that such a trip would involve.
-		l = roomRouter.getZonePath(z, id);
+		if((l = roomRouter.getZonePath(z, id)) == nil)
+			return(nil);
 
-		return(l != nil);
+		return(l[l.length].id == id);
 	}
 
 	// Check the total number of vertices in the zone.  We only care

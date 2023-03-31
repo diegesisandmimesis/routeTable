@@ -252,9 +252,7 @@ class RouteTable: RouteTableObject, SimpleGraphDirected, PreinitObject
 
 	// The "zone path" is the list of zones that have to be
 	// traversed to get from zone id0 to zone id1.
-	getZonePath(id0, id1) {
-		return(findNextHopPath(id0, id1));
-	}
+	getZonePath(id0, id1) { return(findNextHopPath(id0, id1)); }
 
 	// A bridge lookup always returns a vector of source and
 	// destination nodes that connect the zones (if they're
