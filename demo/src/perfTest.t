@@ -131,6 +131,6 @@ gameMain: GameMainDef
 	initialPlayerChar = me
 
 	newGame() {
-		new RouteTablePerfTest(bedroom, secretRoom).runTest();
+		new RouteTablePerfTest(bedroom, secretRoom, 1000).runTest();
 	}
 ;

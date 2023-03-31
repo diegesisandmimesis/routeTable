@@ -2,6 +2,7 @@
 -D MESSAGESTYLE=neu
 -D SIMPLE_GRAPH_DIJKSTRA
 -D SIMPLE_GRAPH_NEXT_HOP_CACHE
+-D SIMPLE_GRAPH_SUBGRAPH
 -Fy obj -Fo obj
 -o games/genericTest.t3
 -lib system

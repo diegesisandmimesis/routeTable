@@ -105,6 +105,17 @@ gameMain: GameMainDef
 	initialPlayerChar = me
 
 	newGame() {
+		"<.p>
+		This is a non-interactive test of the route table linter.
+		It should output a BUNCH of stuff below.
+		<.p>
+		In no particular order, it should complain about:<.p>
+		\n\tthe zone <q>disj</q> not being connected to anything
+		\n\tthe zone <q>quux</q> containing disconnected subgraphs
+		\n\tone or more rooms being orphaned
+		<.p>
+		Report begins below:
+		<.p> ";
 		routeTableLint.setIgnoreList([ ignoredRoom ]);
 		routeTableLint.runTests();
 		//runGame(true);

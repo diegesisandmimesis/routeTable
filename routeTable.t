@@ -25,8 +25,8 @@ class RouteTableVertex: RouteTableObject, SimpleGraphVertex
 		id = v;
 		routeTableID = v;
 		_data = (((d != nil) && d.ofKind(RouteTableZone))
-				? d
-				: new RouteTableZone(v));
+			? d
+			: new RouteTableZone(v));
 	}
 ;
 
@@ -49,28 +49,18 @@ class RouteTable: RouteTableObject, SimpleGraphDirected, PreinitObject
 	// LookupTable for the bridge(s) between this zone and other zones.
 	_routeTableBridge = perInstance(new LookupTable())
 
+	// LookupTable for zones that are declared via the +[object]
+	// syntax.  We look for these at preinit so we can use them
+	// instead of creating a new RouteTableZone instance.
 	_staticRouteTableZones = perInstance(new LookupTable())
 
 	execute() {
+		// This is where we look for RouteTableZone instances
+		// that were declared in the game source.
 		initializeRouteTableZones();
 
 		// Most derived classes probably want to call 
 		// generateNextHopCaches() after execute();
-	}
-
-	generateNextHopCaches() {
-		local z;
-
-		// Generate the next hop data for each individual zone.
-		vertexIDList().forEach(function(o) {
-			if((z = getZone(o)) == nil)
-				return;
-
-			z.generateNextHopCache();
-		});
-
-		// Generate the next hop data for the zone graph.
-		generateNextHopCache();
 	}
 
 	// Find and remember all of the statically-declared zones we're
@@ -133,6 +123,24 @@ class RouteTable: RouteTableObject, SimpleGraphDirected, PreinitObject
 		return(inherited(id));
 	}
 
+	// Go through all of our zones and have them create their
+	// next hop caches (of e.g. room connections), and then we create our
+	// own next hop cache (of zone connections).
+	generateNextHopCaches() {
+		local z;
+
+		// Generate the next hop data for each individual zone.
+		vertexIDList().forEach(function(o) {
+			if((z = getZone(o)) == nil)
+				return;
+
+			z.generateNextHopCache();
+		});
+
+		// Generate the next hop data for the zone graph.
+		generateNextHopCache();
+	}
+
 	// Clear all the zones.
 	clearZones() {
 		local z;
@@ -148,6 +156,8 @@ class RouteTable: RouteTableObject, SimpleGraphDirected, PreinitObject
 		});
 	}
 
+	// Rebuild the indicated zone.  Used when connectivity within
+	// the zone changes.
 	rebuildZone(id0) {
 		local z;
 
