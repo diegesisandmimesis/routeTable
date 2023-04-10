@@ -22,41 +22,92 @@
 // No version info; we're never interactive.
 versionInfo: GameID;
 
+// Define two zones for all our rooms.
 class FooRoom: Room routeTableZone = 'foo';
 class BarRoom: Room routeTableZone = 'bar';
 
-foo1: FooRoom 'Foo Room 1' south = foo2 east = bar1;
-foo2: FooRoom 'Foo Room 2' north = foo1 south = foo3;
-foo3: FooRoom 'Foo Room 3' north = foo2 south = foo4;
-foo4: FooRoom 'Foo Room 4' north = foo3 east = bar4;
+// Layout of our test map
+//
+//      foo1 -- bar1 -- bar5
+//        |       |
+//      foo2    bar2
+//        |       |
+//      foo3    bar3
+//        |       |
+//      foo4 -- bar4 -- bar6
+//
+// A north-south line of four rooms, connected to the "bar" zone at the
+// top and bottom.
+foo1: FooRoom 'Room Foo1' south = foo2 east = bar1;
+foo2: FooRoom 'Room Foo2' north = foo1 south = foo3;
+foo3: FooRoom 'Room Foo3' north = foo2 south = foo4;
+foo4: FooRoom 'Room Foo4' north = foo3 east = bar4;
 
-bar1: BarRoom 'Bar Room 1' south = bar2 east = bar5 west = foo1;
-bar2: BarRoom 'Bar Room 2' north = bar1 south = bar3;
-bar3: BarRoom 'Bar Room 3' north = bar2 south = bar4;
-bar4: BarRoom 'Bar Room 4' north = bar3 east = bar6 west = foo4;
-bar5: BarRoom 'Bar Room 5' west = bar1;
-bar6: BarRoom 'Bar Room 6' west = bar4;
+// A north-south line of four rooms, connected to the "foo" zone at the
+// top and bottom.
+bar1: BarRoom 'Room Bar1' south = bar2 east = bar5 west = foo1;
+bar2: BarRoom 'Room Bar2' north = bar1 south = bar3;
+bar3: BarRoom 'Room Bar3' north = bar2 south = bar4;
+bar4: BarRoom 'Room Bar4' north = bar3 east = bar6 west = foo4;
+
+// Two additional rooms in the "bar" zone, in the northeast and southeast
+// corners.
+bar5: BarRoom 'Room Bar5' west = bar1;
+bar6: BarRoom 'Room Bar6' west = bar4;
 
 me: Person;
 
 gameMain: GameMainDef
 	initialPlayerChar = me
 
-	newGame() {
-		_logPath(foo1, bar5);
-		_logPath(bar5, foo1);
-		_logPath(foo1, bar6);
-		_logPath(bar6, foo1);
-		_logPath(foo4, bar5);
-		_logPath(bar5, foo4);
-		_logPath(foo4, bar6);
-		_logPath(bar6, foo4);
+	// A list of test routes to compute.
+	// First arg is the source room, second the destination room, third the
+	// expected path.
+	_tests = static [
+		[ foo1, bar5, [ foo1, bar1, bar5 ] ],
+		[ bar5, foo1, [ bar5, bar1, foo1 ] ],
+
+		[ foo4, bar2, [ foo4, bar4, bar3, bar2 ] ],
+		[ bar2, foo4, [ bar2, bar3, bar4, foo4 ] ],
+
+		[ foo2, bar6, [ foo2, foo3, foo4, bar4, bar6 ] ],
+		[ bar6, foo2, [ bar6, bar4, foo4, foo3, foo2 ] ],
+
+		[ foo4, bar6, [ foo4, bar4, bar6 ] ],
+		[ bar6, foo4, [ bar6, bar4, foo4 ] ]
+	]
+
+	runTests() {
+		local err, i;
+
+		// Test counter.
+		i = 0;
+
+		// Error counter.
+		err = 0;
+
+		// Go through whatever tests we've defined.
+		_tests.forEach(function(ar) {
+			// Call the room router's debugging method, which will
+			// compute the path between rooms given in the first
+			// two arguments and then compare it to the third
+			// argument.
+			if(roomRouter.debugVerifyPath(ar[1], ar[2], ar[3])
+				!= true) {
+				"ERROR:  failed test <<toString(i)>>:
+					<<ar[1].roomName>>
+					to <<ar[2].roomName>>\n ";
+				err += 1;
+			}
+			i += 1;
+		});
+
+		if(err != 0)
+			"\nERROR:  failed <<toString(err)>> of <<toString(i)>>
+				tests\n ";
+		else
+			"passed <<toString(i)>> of <<toString(i)>> tests\n ";
 	}
 
-	_logPath(rm0, rm1) {
-		"Path from <q><<rm0.name>></q> to <q><<rm1.name>></q>\n ";
-		roomRouter.findPath(rm0, rm1).forEach(function(o) {
-			"\t<<o.routeTableID>>:  <<o.name>>\n ";
-		});
-	}
+	newGame() { runTests(); }
 ;

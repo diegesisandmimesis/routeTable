@@ -147,6 +147,34 @@ roomRouter: RouteTable
 		return(true);
 	}
 
+	// Returns boolean true if the computed path between rm0 and rm1 is
+	// path0, nil otherwise.
+	debugVerifyPath(rm0, rm1, path0) {
+		local i, path1;
+
+		path1 = findPath(rm0, rm1);
+
+		// If the computed path is nil we're done;  if the passed
+		// path was also nil we matched, otherwise we did not.
+		if(path1 == nil)
+			return(path0 == nil);
+
+		// If the paths aren't the same length then they don't
+		// match, we're done.
+		if(path1.length != path0.length)
+			return(nil);
+
+		// If we're here, the paths are the same length, so we go
+		// through both, immediately failing if any element is a
+		// mismatch.
+		for(i = 1; i <= path0.length; i++)
+			if(path0[i] != path1[i])
+				return(nil);
+
+		// If we made it here, it's a match.
+		return(true);
+	}
+
 	// Stub.  Method lives in routeTableSubgraph.t
 	fixSubgraphs() {}
 
