@@ -282,12 +282,12 @@ class RouteTable: RouteTableObject, SimpleGraphDirected, PreinitObject
 		b.forEach(function(o) {
 			// Get the path from the source vertex and
 			// the near-side bridge vertex.
-			if((path0 = fetchNextHopWithBridges(v0, o[1])) == nil)
+			if((path0 = findPathWithBridges(v0, o[1])) == nil)
 				return;
 
 			// Get the path from the far-side bridge vertex
 			// and the destination vertex.
-			if((path1 = fetchNextHopWithBridges(o[2], v1)) == nil)
+			if((path1 = findPathWithBridges(o[2], v1)) == nil)
 				return;
 			
 			// The total length of the path through this bridge.
