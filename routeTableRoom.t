@@ -182,4 +182,8 @@ roomRouter: RouteTable
 	findPath(v0, v1) { return(findPathWithBridges(v0, v1)); }
 ;
 
+routeTablePathFinder: object
+	findPath(a, v0, v1) { return(roomRouter.findPath(v0, v1)); }
+;
+
 #endif // ROUTE_TABLE_NO_ROOMS
