@@ -436,9 +436,18 @@ class RouteTable: RouteTableObject, SimpleGraphDirected, PreinitObject
 
 			// Get the next step in the path.
 			v = fetchNextHopWithBridges(v, v1);
+
+			// We pathed to a room we can't include for some
+			// reason.  By default we handle this by returning
+			// the partial path up to this point.
+			if(!includeRoom(v))
+				v = nil;
 		}
 
 		// Return the path.  We only reach here if pathing failed.
 		return(r);
 	}
+
+	// Should the room be included in the path?
+	includeRoom(v) { return(true); }
 ;

@@ -26,6 +26,7 @@ roomRouter: RouteTable
 	nodeClass = Room
 
 	routeTableActor = nil
+	actor_ = (routeTableActor)
 
 	execute() {
 		inherited();
